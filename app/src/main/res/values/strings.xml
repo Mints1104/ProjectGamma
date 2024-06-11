@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ProjectGamma</string>
+    <string name="hyperlink"> <a href="https://ipogo.app/?coords=">Teleport</a></string>
+</resources>

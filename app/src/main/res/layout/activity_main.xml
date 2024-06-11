@@ -1,0 +1,59 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/text_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Project Gamma by Mints" />
+
+    <Button
+        android:id="@+id/button_make_api_call"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Load/Refresh Data" />
+
+    <Button
+        android:id="@+id/buttonApplyFilter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Apply Filter" />
+
+    <CheckBox
+        android:id="@+id/checkBoxGrunt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Grunt" />
+
+    <CheckBox
+        android:id="@+id/checkBoxLeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Leader" />
+
+    <CheckBox
+        android:id="@+id/checkBoxShowcase"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Showcase" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/text_view_result"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Results will appear here" />
+    </ScrollView>
+
+</LinearLayout>
