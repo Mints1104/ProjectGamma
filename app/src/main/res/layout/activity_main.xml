@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:text="Project Gamma (v0.03) by Mints" />
+        android:text="Project Gamma (v0.04) by Mints" />
 
     <Button
         android:id="@+id/button_make_api_call"
@@ -28,7 +28,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-
+        android:checked="true"
         android:text="Grunt" />
 
     <CheckBox
@@ -36,7 +36,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-
+        android:checked="true"
         android:text="Leader" />
 
     <CheckBox
@@ -44,7 +44,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-
+        android:checked="true"
         android:text="Showcase" />
 
     <ScrollView

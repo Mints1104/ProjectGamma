@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
         checkBoxShowcase = findViewById(R.id.checkBoxShowcase)
 
         val button: Button = findViewById(R.id.button_make_api_call)
+        makeApiCall()
 
         button.setOnClickListener {
             makeApiCall()
