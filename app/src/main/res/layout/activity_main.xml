@@ -11,36 +11,40 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:text="Project Gamma by Mints" />
+        android:text="Project Gamma (v0.03) by Mints" />
 
     <Button
         android:id="@+id/button_make_api_call"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:layout_marginStart="10dp"
         android:text="Load/Refresh Data" />
 
-    <Button
-        android:id="@+id/buttonApplyFilter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Apply Filter" />
+
 
     <CheckBox
         android:id="@+id/checkBoxGrunt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+
         android:text="Grunt" />
 
     <CheckBox
         android:id="@+id/checkBoxLeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+
         android:text="Leader" />
 
     <CheckBox
         android:id="@+id/checkBoxShowcase"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+
         android:text="Showcase" />
 
     <ScrollView
