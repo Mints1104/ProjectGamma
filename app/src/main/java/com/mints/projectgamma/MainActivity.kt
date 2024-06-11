@@ -35,7 +35,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var checkBoxGrunt: CheckBox
     private lateinit var checkBoxLeader: CheckBox
     private lateinit var checkBoxShowcase: CheckBox
-    var hello = 1
 
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.O)
@@ -49,7 +48,6 @@ class MainActivity : ComponentActivity() {
         checkBoxShowcase = findViewById(R.id.checkBoxShowcase)
 
         val button: Button = findViewById(R.id.button_make_api_call)
-        val buttonFilter: Button = findViewById(R.id.buttonApplyFilter)
 
         button.setOnClickListener {
             makeApiCall()
@@ -91,42 +89,60 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleSuccess(invasions: List<Invasion>) {
         filteredInvasions = mutableListOf()
-        var gruntFlag = false
-
+        var counter = 0
+        val maxAtOnce = 50
         val sortedInvasions = sortInvasionsByEndTime(invasions)
 
-        if (sortedInvasions.isNotEmpty()) {
-            val stringBuilder = StringBuilder()
-            for (invasion in sortedInvasions) {
-                if (DataMappings.characterNamesMap.containsKey(invasion.character)) {
-                    if (checkBoxGrunt.isChecked && invasion.type == 1) {
-                        filteredInvasions.add(invasion)
-                        val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
-                        val newEndTime = formatInvasionEndTime(invasion.invasion_end)
-                        stringBuilder.append("Name: ${invasion.name}<br>")
-                        stringBuilder.append("Location: <a href=\"$link\">Teleport</a><br>")
-                        stringBuilder.append("Ending at: $newEndTime<br>")
-                        stringBuilder.append("Character: ${invasion.characterName}<br>")
-                        stringBuilder.append("Type: ${invasion.typeDescription}<br><br>")
-                        gruntFlag = true
-                    } else if ((checkBoxLeader.isChecked) && (invasion.type == 2 || invasion.type == 3)) {
-                        filteredInvasions.add(invasion)
-                        val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
-                        val newEndTime = formatInvasionEndTime(invasion.invasion_end)
-                        stringBuilder.append("Name: ${invasion.name}<br>")
-                        stringBuilder.append("Location: <a href=\"$link\">Teleport</a><br>")
-                        stringBuilder.append("Ending at: $newEndTime<br>")
-                        stringBuilder.append("Character: ${invasion.characterName}<br>")
-                        stringBuilder.append("Type: ${invasion.typeDescription}<br><br>")
-                    }
-                }
+        val stringBuilder = StringBuilder()
+        for (invasion in sortedInvasions) {
+            if (counter >= maxAtOnce) {
+                break
             }
 
-            resultTextView.text = HtmlCompat.fromHtml(stringBuilder.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
-            resultTextView.movementMethod = LinkMovementMethod.getInstance()
-        } else {
-            resultTextView.text = "No invasions found."
+            counter += 1
+            if (DataMappings.characterNamesMap.containsKey(invasion.character)) {
+                if (checkBoxGrunt.isChecked && invasion.type == 1) {
+                    filteredInvasions.add(invasion)
+                    postData(invasion, stringBuilder)
+                } else if (checkBoxLeader.isChecked && (invasion.type == 2 || invasion.type == 3)) {
+                    filteredInvasions.add(invasion)
+                    postData(invasion, stringBuilder)
+                } else if (checkBoxGrunt.isChecked && checkBoxLeader.isChecked && (invasion.type == 1 || invasion.type == 2 || invasion.type == 3)) {
+                    filteredInvasions.add(invasion)
+                    postData(invasion, stringBuilder)
+                } else if (checkBoxGrunt.isChecked && checkBoxShowcase.isChecked && (invasion.type == 1 || invasion.type == 0)) {
+                    filteredInvasions.add(invasion)
+                    postData(invasion, stringBuilder)
+                } else if (checkBoxLeader.isChecked && checkBoxShowcase.isChecked && (invasion.type == 0 || invasion.type == 2 || invasion.type == 3)) {
+                    filteredInvasions.add(invasion)
+                    postData(invasion, stringBuilder)
+                } else if (checkBoxShowcase.isChecked && invasion.type == 0) {
+                    filteredInvasions.add(invasion)
+                    postData(invasion, stringBuilder)
+                } else {
+                    postData(invasion, stringBuilder)
+                }
+            }
         }
+
+
+        resultTextView.text = HtmlCompat.fromHtml(stringBuilder.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
+            resultTextView.movementMethod = LinkMovementMethod.getInstance()
+
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun postData(
+        invasion: Invasion,
+        stringBuilder: StringBuilder
+    ) {
+        val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
+        val newEndTime = formatInvasionEndTime(invasion.invasion_end)
+        stringBuilder.append("Name: ${invasion.name}<br>")
+        stringBuilder.append("Location: <a href=\"$link\">Teleport</a><br>")
+        stringBuilder.append("Ending at: $newEndTime<br>")
+        stringBuilder.append("Character: ${invasion.characterName}<br>")
+        stringBuilder.append("Type: ${invasion.typeDescription}<br><br>")
     }
 
     private fun handleFailure(exception: Exception) {
