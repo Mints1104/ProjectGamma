@@ -99,43 +99,25 @@ class MainActivity : ComponentActivity() {
                 break
             }
 
-            counter += 1
             if (DataMappings.characterNamesMap.containsKey(invasion.character)) {
-                if (checkBoxGrunt.isChecked && invasion.type == 1) {
+                val isGrunt = checkBoxGrunt.isChecked && invasion.type == 1
+                val isLeader = checkBoxLeader.isChecked && (invasion.type == 2 || invasion.type == 3)
+                val isShowcase = checkBoxShowcase.isChecked && invasion.type == 9
+
+                if (isGrunt || isLeader || isShowcase) {
                     filteredInvasions.add(invasion)
                     postData(invasion, stringBuilder)
-                } else if (checkBoxLeader.isChecked && (invasion.type == 2 || invasion.type == 3)) {
-                    filteredInvasions.add(invasion)
-                    postData(invasion, stringBuilder)
-                } else if (checkBoxGrunt.isChecked && checkBoxLeader.isChecked && (invasion.type == 1 || invasion.type == 2 || invasion.type == 3)) {
-                    filteredInvasions.add(invasion)
-                    postData(invasion, stringBuilder)
-                } else if (checkBoxGrunt.isChecked && checkBoxShowcase.isChecked && (invasion.type == 1 || invasion.type == 0)) {
-                    filteredInvasions.add(invasion)
-                    postData(invasion, stringBuilder)
-                } else if (checkBoxLeader.isChecked && checkBoxShowcase.isChecked && (invasion.type == 0 || invasion.type == 2 || invasion.type == 3)) {
-                    filteredInvasions.add(invasion)
-                    postData(invasion, stringBuilder)
-                } else if (checkBoxShowcase.isChecked && invasion.type == 0) {
-                    filteredInvasions.add(invasion)
-                    postData(invasion, stringBuilder)
-                } else {
-                    postData(invasion, stringBuilder)
+                    counter += 1
                 }
             }
         }
 
-
         resultTextView.text = HtmlCompat.fromHtml(stringBuilder.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
-            resultTextView.movementMethod = LinkMovementMethod.getInstance()
-
+        resultTextView.movementMethod = LinkMovementMethod.getInstance()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun postData(
-        invasion: Invasion,
-        stringBuilder: StringBuilder
-    ) {
+    private fun postData(invasion: Invasion, stringBuilder: StringBuilder) {
         val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
         val newEndTime = formatInvasionEndTime(invasion.invasion_end)
         stringBuilder.append("Name: ${invasion.name}<br>")
