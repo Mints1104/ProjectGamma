@@ -74,6 +74,8 @@ class MainActivity : ComponentActivity() {
         val selectedItemsTextView: TextView = findViewById(R.id.selectedItemsTextView)
         resultTextView = findViewById(R.id.text_view_result)
         val button: Button = findViewById(R.id.button_make_api_call)
+        visitedInvasions = mutableListOf()
+
         val items = arrayOf("Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
             "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
             "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
@@ -260,33 +262,38 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, index: Int) {
-        visitedInvasions = mutableListOf()
-        val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
-        val newEndTime = formatInvasionEndTime(invasion.invasion_end)
 
-        val teleportText = "Teleport"
-        val invasionText = "Name: ${invasion.name}\nLocation: $teleportText\nEnding at: $newEndTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
 
-        val start = stringBuilder.length
-        stringBuilder.append(invasionText)
-        val end = stringBuilder.length
 
-        val spanStart = start + "Name: ${invasion.name}\nLocation: ".length
-        val spanEnd = spanStart + teleportText.length
+        if (!visitedInvasions.contains(invasion)) {
+            val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
+            val newEndTime = formatInvasionEndTime(invasion.invasion_end)
 
-        stringBuilder.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
-                // Open the link
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
-                widget.context.startActivity(intent)
+            val teleportText = "Teleport"
+            val invasionText =
+                "Name: ${invasion.name}\nLocation: $teleportText\nEnding at: $newEndTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
 
-                filteredInvasions.removeAt(index)
-                visitedInvasions.add(invasion)
-                updateResultTextView()
-            }
-        }, spanStart, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            val start = stringBuilder.length
+            stringBuilder.append(invasionText)
+            val end = stringBuilder.length
+
+            val spanStart = start + "Name: ${invasion.name}\nLocation: ".length
+            val spanEnd = spanStart + teleportText.length
+
+
+            stringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Open the link
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                    widget.context.startActivity(intent)
+
+                    filteredInvasions.removeAt(index)
+                    visitedInvasions.add(invasion)
+                    updateResultTextView()
+                }
+            }, spanStart, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateResultTextView() {
