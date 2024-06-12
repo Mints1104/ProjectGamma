@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">ProjectGamma</string>
     <string name="hyperlink"> <a href="https://ipogo.app/?coords=">Teleport</a></string>
+    <string name="drop_down_menu">Dropdown Menu</string>
+    <string name="select">Select </string>
 </resources>
+
+
