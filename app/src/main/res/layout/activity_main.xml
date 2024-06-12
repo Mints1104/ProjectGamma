@@ -13,28 +13,29 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"
-        android:text="Project Gamma (v0.05) by Mints" />
+        android:text="@string/project_gamma_header" />
 
     <Button
         android:id="@+id/button_make_api_call"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-        android:text="Load/Refresh Data" />
+        android:text="@string/load_refresh_data" />
 
     <Button
         android:id="@+id/showMultiSelectDialogButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-        android:text="Select Options" />
+        android:text="@string/select_options" />
 
     <TextView
         android:id="@+id/selectedItemsTextView"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
         android:layout_marginTop="16dp"
-        android:text="Selected items will appear here" />
+        android:text="@string/selected_items_will_appear_here" />
 
 
 
@@ -48,7 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
-            android:text="Loading data may take a few seconds." />
+            android:text="@string/loading_data_may_take_a_few_seconds" />
     </ScrollView>
 
 </LinearLayout>

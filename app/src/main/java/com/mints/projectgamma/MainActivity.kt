@@ -1,15 +1,20 @@
 package com.mints.projectgamma
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
-import androidx.core.text.HtmlCompat
 import com.mints.projectgamma.api.ApiClient
 import com.mints.projectgamma.api.ApiService
 import com.mints.projectgamma.api.Invasion
@@ -27,11 +32,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var allInvasions: List<Invasion>
     private lateinit var filteredInvasions: MutableList<Invasion>
     private lateinit var selectedItems: MutableList<String>
+    private lateinit var visitedInvasions: MutableList<Invasion>
 
-    private var cliffCheck = true
-    private var arloCheck = true
-    private var sierraCheck = true
-    private var giovanniCheck = true
+    private var cliffCheck = false
+    private var arloCheck = false
+    private var sierraCheck = false
+    private var giovanniCheck = false
     private var dragonFemaleCheck = true
     private var darkFemaleCheck = true
     private var bugMaleCheck = true
@@ -53,7 +59,9 @@ class MainActivity : ComponentActivity() {
     private var electricCheck = true
     private var typelessFemaleCheck = true
     private var typelessMaleCheck = true
-    private var showcaseCheck = true
+    private var showcaseCheck = false
+
+
 
 
 
@@ -203,7 +211,6 @@ class MainActivity : ComponentActivity() {
         val maxAtOnce = 200
         val sortedInvasions = sortInvasionsByEndTime(invasions)
 
-        val stringBuilder = StringBuilder()
         for (invasion in sortedInvasions) {
             if (counter >= maxAtOnce) {
                 break
@@ -243,26 +250,55 @@ class MainActivity : ComponentActivity() {
 
             if (isSelectedCharacter) {
                 filteredInvasions.add(invasion)
-                postData(invasion, stringBuilder)
                 counter += 1
             }
         }
 
-        resultTextView.text = HtmlCompat.fromHtml(stringBuilder.toString(), HtmlCompat.FROM_HTML_MODE_LEGACY)
-        resultTextView.movementMethod = LinkMovementMethod.getInstance()
+        updateResultTextView()
     }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun postData(invasion: Invasion, stringBuilder: StringBuilder) {
+    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, index: Int) {
+        visitedInvasions = mutableListOf()
         val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
         val newEndTime = formatInvasionEndTime(invasion.invasion_end)
-        stringBuilder.append("Name: ${invasion.name}<br>")
-        stringBuilder.append("Location: <a href=\"$link\">Teleport</a><br>")
-        stringBuilder.append("Ending at: $newEndTime<br>")
-        stringBuilder.append("Character: ${invasion.characterName}<br>")
-        stringBuilder.append("Type: ${invasion.typeDescription}<br><br>")
+
+        val teleportText = "Teleport"
+        val invasionText = "Name: ${invasion.name}\nLocation: $teleportText\nEnding at: $newEndTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
+
+        val start = stringBuilder.length
+        stringBuilder.append(invasionText)
+        val end = stringBuilder.length
+
+        val spanStart = start + "Name: ${invasion.name}\nLocation: ".length
+        val spanEnd = spanStart + teleportText.length
+
+        stringBuilder.setSpan(object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                // Open the link
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                widget.context.startActivity(intent)
+
+                filteredInvasions.removeAt(index)
+                visitedInvasions.add(invasion)
+                updateResultTextView()
+            }
+        }, spanStart, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun updateResultTextView() {
+        val stringBuilder = SpannableStringBuilder()
+        for ((index, invasion) in filteredInvasions.withIndex()) {
+            postData(invasion, stringBuilder, index)
+        }
+        resultTextView.text = stringBuilder
+        resultTextView.movementMethod = LinkMovementMethod.getInstance()
+    }
+
+
 
     private fun handleFailure(exception: Exception) {
         resultTextView.text = "API call failed: ${exception.message}"
