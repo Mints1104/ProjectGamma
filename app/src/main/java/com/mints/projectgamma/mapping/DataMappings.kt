@@ -21,7 +21,7 @@ object DataMappings {
         32 to "Poison Female",
         35 to "Psychic Male",
         37 to "Rock Male",
-        29 to "Metal Male",
+        29 to "Steel Male",
         38 to "Water Female",
         39 to "Water Male",
         49 to "Electric",
