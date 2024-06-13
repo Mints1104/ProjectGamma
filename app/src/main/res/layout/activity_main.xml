@@ -29,6 +29,13 @@
         android:layout_marginStart="10dp"
         android:text="@string/select_options" />
 
+    <Button
+        android:id="@+id/select_deselect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:text="Select/DESELECT ALL" />
+
     <TextView
         android:id="@+id/selectedItemsTextView"
         android:layout_width="match_parent"
