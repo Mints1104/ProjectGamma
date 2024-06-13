@@ -27,7 +27,8 @@ object DataMappings {
         49 to "Electric",
         5 to "Typeless Female",
         4 to "Typeless Male",
-        0 to "Showcase"
+        0 to "Showcase",
+        0 to "Kecleon"
         // Add more mappings as needed
     )
 
@@ -35,7 +36,8 @@ object DataMappings {
         1 to "Grunt",
         2 to "Leader",
         3 to "Giovanni",
-        9 to "Showcase"
+        9 to "Showcase",
+        8 to "Kecleon"
         // Add more mappings as needed
     )
 }

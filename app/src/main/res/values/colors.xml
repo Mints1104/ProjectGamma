@@ -1,10 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Colors for Light Theme -->
+    <color name="colorPrimary">#FF6200EE</color>
+    <color name="colorPrimaryVariant">#FF3700B3</color>
+    <color name="colorOnPrimary">#FFFFFFFF</color>
+
+    <color name="colorSecondary">#FF03DAC5</color>
+    <color name="colorSecondaryVariant">#FF018786</color>
+    <color name="colorOnSecondary">#FFFFFFFF</color>
+
+    <color name="colorError">#FF000000</color>
+    <color name="colorOnError">#FFFFFFFF</color>
+
+    <color name="windowBackground">#FFFFFFFF</color> <!-- Light mode window background -->
+
+    <!-- Colors for Dark Theme -->
+    <color name="colorPrimaryDark">#FFBB86FC</color>
+    <color name="colorPrimaryVariantDark">#FF3700B3</color>
+    <color name="colorOnPrimaryDark">#FF000000</color>
+
+    <color name="colorSecondaryDark">#FF03DAC5</color>
+    <color name="colorSecondaryVariantDark">#FF018786</color>
+    <color name="colorOnSecondaryDark">#FF000000</color>
+
+    <color name="colorErrorDark">#FF000000</color>
+    <color name="colorOnErrorDark">#FF000000</color>
+
+    <color name="windowBackgroundDark">#FF000000</color> <!-- Dark mode window background -->
 </resources>
