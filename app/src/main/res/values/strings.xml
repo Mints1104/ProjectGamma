@@ -3,7 +3,7 @@
     <string name="hyperlink"> <a href="https://ipogo.app/?coords=">Teleport</a></string>
     <string name="drop_down_menu">Dropdown Menu</string>
     <string name="select">Select </string>
-    <string name="project_gamma_header">Project Gamma (v0.07) by Mints</string>
+    <string name="project_gamma_header">Project Gamma (v0.08) by Mints</string>
     <string name="load_refresh_data">Load/Refresh Data</string>
     <string name="select_options">Select Options</string>
     <string name="selected_items_will_appear_here">Selected items will appear here</string>

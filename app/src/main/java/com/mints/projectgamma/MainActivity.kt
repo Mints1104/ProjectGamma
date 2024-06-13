@@ -1,6 +1,9 @@
 package com.mints.projectgamma
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -12,6 +15,7 @@ import android.text.style.ClickableSpan
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
@@ -70,19 +74,39 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         val showMultiSelectDialogButton: Button = findViewById(R.id.showMultiSelectDialogButton)
         val selectedItemsTextView: TextView = findViewById(R.id.selectedItemsTextView)
         resultTextView = findViewById(R.id.text_view_result)
         val button: Button = findViewById(R.id.button_make_api_call)
         visitedInvasions = mutableListOf()
 
-        val items = arrayOf("Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
+        val items = arrayOf(
+            "Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
             "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
             "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
             "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
-            "Electric","Typeless Female","Typeless Male","Showcase")
-        selectedItems = items.toMutableList()
-        val selectedBooleanArray = BooleanArray(items.size) { true }
+            "Electric","Typeless Female","Typeless Male","Showcase"
+        )
+
+        // Initialize selectedItems excluding "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase"
+        selectedItems = arrayOf(
+            "Dragon Female", "Dark Female",
+            "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
+            "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
+            "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
+            "Electric","Typeless Female","Typeless Male"
+        ).toMutableList()
+        // Initialize selectedBooleanArray based on selectedItems
+        val selectedBooleanArray = BooleanArray(items.size) { index ->
+            when (items[index]) {
+                "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase" -> false
+                else -> true // or set to false if you want none to be checked by default
+            }
+        }
+
+        selectedItemsTextView.text = "Selected items: ${selectedItems.joinToString(", ")}"
+
 
         showMultiSelectDialogButton.setOnClickListener {
             val builder = AlertDialog.Builder(this)
@@ -103,7 +127,7 @@ class MainActivity : ComponentActivity() {
             builder.show()
         }
 
-
+        // Example makeApiCall and button click handling
         makeApiCall()
         button.setOnClickListener {
             makeApiCall()
@@ -260,25 +284,35 @@ class MainActivity : ComponentActivity() {
     }
 
 
+
+
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, index: Int) {
-
-
 
         if (!visitedInvasions.contains(invasion)) {
             val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
             val newEndTime = formatInvasionEndTime(invasion.invasion_end)
 
             val teleportText = "Teleport"
+            val copyText = "Copy"
+            val deleteText = "Delete"
             val invasionText =
-                "Name: ${invasion.name}\nLocation: $teleportText\nEnding at: $newEndTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
+                "Name: ${invasion.name}\nLocation: $teleportText | $copyText | $deleteText\nEnding at: $newEndTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
 
             val start = stringBuilder.length
             stringBuilder.append(invasionText)
             val end = stringBuilder.length
 
-            val spanStart = start + "Name: ${invasion.name}\nLocation: ".length
-            val spanEnd = spanStart + teleportText.length
+            val spanStartTeleport = start + "Name: ${invasion.name}\nLocation: ".length
+            val spanEndTeleport = spanStartTeleport + teleportText.length
+
+            val spanStartCopy = spanEndTeleport + " | ".length
+            val spanEndCopy = spanStartCopy + copyText.length
+
+            val spanStartDelete = spanEndCopy + " | ".length
+            val spanEndDelete = spanStartDelete + deleteText.length
+
 
 
             stringBuilder.setSpan(object : ClickableSpan() {
@@ -291,9 +325,34 @@ class MainActivity : ComponentActivity() {
                     visitedInvasions.add(invasion)
                     updateResultTextView()
                 }
-            }, spanStart, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }, spanStartTeleport, spanEndTeleport, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            stringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Copy the coordinates to clipboard
+                    val clipboard = widget.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Coordinates", "${invasion.lat},${invasion.lng}")
+                    clipboard.setPrimaryClip(clip)
+
+                    Toast.makeText(widget.context, "Coordinates copied to clipboard", Toast.LENGTH_SHORT).show()
+                }
+            }, spanStartCopy, spanEndCopy, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            stringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    filteredInvasions.removeAt(index)
+                    visitedInvasions.add(invasion)
+                    updateResultTextView()
+
+                }
+            }, spanStartDelete, spanEndDelete, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
+
+
+
+
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateResultTextView() {
