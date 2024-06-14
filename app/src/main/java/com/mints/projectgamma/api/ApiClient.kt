@@ -6,18 +6,33 @@ import retrofit2.http.GET
 
 
 object ApiClient {
-    private const val BASE_URL = "https://nycpokemap.com"
+    private const val BASE_URL_NYC = "https://nycpokemap.com"
+    private const val BASE_URL_LONDON = "https://londonpogomap.com"
 
-    val retrofit = Retrofit.Builder()
-        .baseUrl("https://nycpokemap.com") // Exclude trailing slash
+    // Retrofit instance for NYC Pokemap
+    val retrofitNYC = Retrofit.Builder()
+        .baseUrl(BASE_URL_NYC)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    interface PokeMapApi {
+    // Retrofit instance for London Pogo Map
+     val retrofitLondon = Retrofit.Builder()
+        .baseUrl(BASE_URL_LONDON)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    // Interface for NYC Pokemap API
+    interface PokeMapApiNYC {
         @GET("/pokestop.php")
         suspend fun getInvasions(): List<Invasion>
     }
 
+    // Interface for London Pogo Map API
+    interface PokeMapApiLondon {
+        @GET("/pokestop.php")
+        suspend fun getInvasions(): List<Invasion>
+    }
 
-    val api: PokeMapApi = retrofit.create(PokeMapApi::class.java)
+    val apiNYC: PokeMapApiNYC = retrofitNYC.create(PokeMapApiNYC::class.java)
+    val apiLondon: PokeMapApiLondon = retrofitLondon.create(PokeMapApiLondon::class.java)
 }

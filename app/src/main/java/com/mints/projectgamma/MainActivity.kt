@@ -100,7 +100,9 @@ class MainActivity : ComponentActivity() {
         val showMultiSelectDialogButton: Button = findViewById(R.id.showMultiSelectDialogButton)
         selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
         resultTextView = findViewById(R.id.text_view_result)
-        val button: Button = findViewById(R.id.button_make_api_call)
+        val buttonNYC: Button = findViewById(R.id.button_make_api_NYC_call)
+        val buttonLondon: Button = findViewById(R.id.button_make_api_London_call)
+
         val selectAllButton : Button = findViewById(R.id.select_deselect)
         visitedInvasions = mutableListOf()
        // selectedBooleanArray = BooleanArray(items.size)
@@ -135,8 +137,8 @@ class MainActivity : ComponentActivity() {
 
         selectedItemsTextView.text = "Selected items: ${selectedItems.joinToString(", ")}"
         createFilter()
-        makeApiCall()
-
+        makeApiCallLondon()
+        makeApiCallNYC()
         showMultiSelectDialogButton.setOnClickListener {
             val builder = AlertDialog.Builder(this)
             builder.setTitle("Select Items")
@@ -174,9 +176,21 @@ class MainActivity : ComponentActivity() {
         }
 
 
-        button.setOnClickListener {
-            makeApiCall()
+        buttonNYC.setOnClickListener {
+            createFilter()
+            makeApiCallNYC()
+            Log.d("TAG","Selected:$selectedItems")
+
         }
+
+        buttonLondon.setOnClickListener {
+            createFilter()
+            makeApiCallLondon()
+            Log.d("TAG","Selected:$selectedItems")
+
+
+        }
+
 
         selectAllButton.setOnClickListener {
             selectAll()
@@ -205,10 +219,7 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createFilter() {
-
-        if(!allSelected) {
-            resetFilter()
-        }
+        resetFilter()
 
         selectedItems.forEach { item ->
             when (item) {
@@ -241,7 +252,11 @@ class MainActivity : ComponentActivity() {
                 "Kecleon" -> kecleonCheck = true
             }
         }
-     //   saveFilterArray()
+        Log.d("TAG","Test in CREATEFILTER $selectedItems")
+        Log.d("TAG","Test in CREATEFILTER $dragonFemaleCheck")
+        Log.d("TAG","Test in CREATEFILTER $darkFemaleCheck")
+
+        saveFilterArray()
 
     }
     private fun resetFilter() {
@@ -354,12 +369,32 @@ class MainActivity : ComponentActivity() {
 
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun makeApiCall() {
-        val apiService = ApiClient.retrofit.create(ApiService::class.java)
+    private fun makeApiCallNYC() {
+        val apiNYC = ApiClient.retrofitNYC.create(ApiService::class.java)
+
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = apiService.getInvasions()
+                val response = apiNYC.getInvasions()
+                withContext(Dispatchers.Main) {
+                    handleSuccess(response.invasions)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    handleFailure(e)
+                }
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun makeApiCallLondon() {
+        val apiLondon = ApiClient.retrofitLondon.create(ApiService::class.java)
+
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = apiLondon.getInvasions()
                 withContext(Dispatchers.Main) {
                     handleSuccess(response.invasions)
                 }
@@ -372,6 +407,7 @@ class MainActivity : ComponentActivity() {
     }
 
 
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun formatInvasionEndTime(invasionEnd: Long): String {
         try {
@@ -379,8 +415,6 @@ class MainActivity : ComponentActivity() {
                 .withZone(ZoneId.systemDefault())
 
             val formattedTime = formatter.format(Instant.ofEpochSecond(invasionEnd))
-            Log.d("TimeDebug", "Raw Invasion End Time: $invasionEnd")
-            Log.d("TimeDebug", "Formatted Time: $formattedTime")
 
             return formattedTime
         } catch (e: Exception) {
@@ -456,12 +490,23 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, index: Int) {
         if (!visitedInvasions.contains(invasion)) {
+
+            var source = ""
+            if(invasion.lat.toString().startsWith("40")) {
+                source = "New York"
+
+            } else if(invasion.lat.toString().startsWith("51")) {
+                source = "London"
+            }
+
+
             val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
             val endTime = formatInvasionEndTime(invasion.invasion_end)
             val teleportText = "Teleport"
             val copyText = "Copy"
             val deleteText = "Delete"
-            val invasionText = "Name: ${invasion.name}\nLocation: $teleportText | $copyText | $deleteText\nEnding at: $endTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
+            val invasionText = "Name: ${invasion.name}\nLocation: $teleportText | $copyText | $deleteText\nSource: $source\nEnding at: $endTime\nCharacter: ${invasion.characterName}\n" +
+                    "Type: ${invasion.typeDescription}\n\n"
             val start = stringBuilder.length
             stringBuilder.append(invasionText)
 
