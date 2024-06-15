@@ -35,7 +35,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 
-private const val MAX_VISITED_INVASIONS = 750 // Maximum number of visited invasions to keep
+private const val MAX_VISITED_INVASIONS = 750
 
 class MainActivity : ComponentActivity() {
 
@@ -43,7 +43,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var allInvasions: List<Invasion>
     private lateinit var filteredInvasions: MutableList<Invasion>
     private lateinit var selectedItems: MutableList<String>
-//    private lateinit var items: Array<String>
     private var items = arrayOf(
         "Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
         "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
@@ -58,10 +57,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var selectedBooleanArray: BooleanArray
     private lateinit var selectedItemsTextView: TextView
     private lateinit var visitedInvasions: MutableList<Invasion>
-
-
-
-
     private var cliffCheck = false
     private var arloCheck = false
     private var sierraCheck = false
@@ -96,46 +91,35 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         val showMultiSelectDialogButton: Button = findViewById(R.id.showMultiSelectDialogButton)
         selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
         resultTextView = findViewById(R.id.text_view_result)
         val buttonNYC: Button = findViewById(R.id.button_make_api_NYC_call)
         val buttonLondon: Button = findViewById(R.id.button_make_api_London_call)
-
         val selectAllButton : Button = findViewById(R.id.select_deselect)
         visitedInvasions = mutableListOf()
-       // selectedBooleanArray = BooleanArray(items.size)
         selectedItems = mutableListOf()
 
-       loadFilterArray()
+        loadFilterArray()
         loadVisitedInvasions()
-
 
         if(selectedItems.isEmpty()) {
             selectedItems = defaultFilter.toMutableList()
             selectedBooleanArray = BooleanArray(items.size) { index ->
                 when (items[index]) {
                     "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase" -> false
-                    else -> true // or set to false if you want none to be checked by default
+                    else -> true
                 }
             }
-            Log.d("MainActivity", "TEST 3")
-
         } else {
             Log.d("TAG", "T:$selectedItems")
 
             selectedBooleanArray = BooleanArray(items.size) { index ->
                 selectedItems.contains(items[index])
             }
-
-
-
     }
-
-        // Initialize selectedBooleanArray based on selectedItems
-
-        selectedItemsTextView.text = "Selected items: ${selectedItems.joinToString(", ")}"
+        selectedItemsTextView.text =
+            getString(R.string.selected_items, selectedItems.joinToString(", "))
         createFilter()
         makeApiCallLondon()
         makeApiCallNYC()
@@ -151,28 +135,23 @@ class MainActivity : ComponentActivity() {
                 selectedBooleanArray[which] = isChecked
             }
             builder.setPositiveButton("OK") { _, _ ->
-
                 if(selectedItems.containsAll(items.toList())) {
-                    selectedItemsTextView.text = "Selected items: All"
+                    selectedItemsTextView.text = getString(R.string.all_items_selected)
+                    createFilter()
+                    saveFilterArray()
+
+                } else if(selectedItems.isEmpty()) {
+                    selectedItemsTextView.text = getString(R.string.no_items_selected)
                     createFilter()
                     saveFilterArray()
 
                 } else {
-                    selectedItemsTextView.text = "Selected items: ${selectedItems.joinToString(", ")}"
-                    createFilter()
-                    saveFilterArray()
-
+                    selectedItemsTextView.text =
+                        getString(R.string.selected_items, selectedItems.joinToString(", "))
                 }
-
-
-
             }
             builder.setNegativeButton("Cancel", null)
             builder.show()
-
-
-
-
         }
 
 
@@ -190,12 +169,9 @@ class MainActivity : ComponentActivity() {
 
 
         }
-
-
         selectAllButton.setOnClickListener {
             selectAll()
         }
-
         allInvasions = emptyList()
     }
 
@@ -205,7 +181,7 @@ class MainActivity : ComponentActivity() {
             selectedBooleanArray.fill(true)
             selectedItems.clear()
             selectedItems.addAll(items)
-            selectedItemsTextView.text = getString(R.string.All_Items_Selected)
+            selectedItemsTextView.text = getString(R.string.all_items_selected)
         } else {
             selectedBooleanArray.fill(false)
             selectedItems.clear()
@@ -252,10 +228,6 @@ class MainActivity : ComponentActivity() {
                 "Kecleon" -> kecleonCheck = true
             }
         }
-        Log.d("TAG","Test in CREATEFILTER $selectedItems")
-        Log.d("TAG","Test in CREATEFILTER $dragonFemaleCheck")
-        Log.d("TAG","Test in CREATEFILTER $darkFemaleCheck")
-
         saveFilterArray()
 
     }
@@ -290,7 +262,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun saveFilterArray() {
-      val   sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         val gson = Gson()
 
@@ -324,7 +296,6 @@ class MainActivity : ComponentActivity() {
 
             selectedItems = defaultFilter.toMutableList()
         }
-        // Debugging logs
 
     }
 
@@ -333,16 +304,7 @@ class MainActivity : ComponentActivity() {
         val editor = sharedPreferences.edit()
         val gson = Gson()
         val limitedList = visitedInvasions.takeLast(MAX_VISITED_INVASIONS)
-
         val json = gson.toJson(limitedList)
-
-        if(visitedInvasions.isNotEmpty()) {
-
-            Log.d("TAG","Visited invasions:$visitedInvasions")
-        } else {
-            Log.d("TAG","Visited invasions is empty.")
-        }
-
 
         editor.putString("visitedInvasions", json)
         editor.apply()
@@ -354,8 +316,6 @@ class MainActivity : ComponentActivity() {
         val json = sharedPreferences.getString("visitedInvasions", null)
         val type = object : TypeToken<MutableList<Invasion>>() {}.type
         val allVisitedInvasions = gson.fromJson<MutableList<Invasion>>(json, type) ?: mutableListOf()
-
-        // Limit the loaded list to the maximum allowed
         visitedInvasions = allVisitedInvasions.takeLast(MAX_VISITED_INVASIONS).toMutableList()
 
 
@@ -366,8 +326,6 @@ class MainActivity : ComponentActivity() {
             Log.d("TAG","Visited invasions is empty.")
         }
     }
-
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun makeApiCallNYC() {
         val apiNYC = ApiClient.retrofitNYC.create(ApiService::class.java)
@@ -386,7 +344,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun makeApiCallLondon() {
         val apiLondon = ApiClient.retrofitLondon.create(ApiService::class.java)
@@ -405,9 +362,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
-
     @RequiresApi(Build.VERSION_CODES.O)
     fun formatInvasionEndTime(invasionEnd: Long): String {
         try {
@@ -422,10 +376,6 @@ class MainActivity : ComponentActivity() {
             return "Error"
         }
     }
-
-
-
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleSuccess(invasions: List<Invasion>) {
         filteredInvasions = mutableListOf()
@@ -488,7 +438,7 @@ class MainActivity : ComponentActivity() {
         resultTextView.movementMethod = LinkMovementMethod.getInstance()
     }
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, index: Int) {
+    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, @Suppress("UNUSED_PARAMETER") index: Int) {
         if (!visitedInvasions.contains(invasion)) {
 
             var source = ""
@@ -509,7 +459,6 @@ class MainActivity : ComponentActivity() {
                     "Type: ${invasion.typeDescription}\n\n"
             val start = stringBuilder.length
             stringBuilder.append(invasionText)
-
             val spanStartTeleport = start + "Name: ${invasion.name}\nLocation: ".length
             val spanEndTeleport = spanStartTeleport + teleportText.length
             val spanStartCopy = spanEndTeleport + " | ".length
