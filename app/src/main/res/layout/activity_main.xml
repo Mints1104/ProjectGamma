@@ -16,11 +16,18 @@
         android:text="@string/project_gamma_header" />
 
     <Button
-        android:id="@+id/button_make_api_call"
+        android:id="@+id/button_make_api_NYC_call"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
-        android:text="@string/load_refresh_data" />
+        android:text="@string/load_refresh_data_NYC" />
+
+    <Button
+        android:id="@+id/button_make_api_London_call"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:text="@string/load_refresh_data_London" />
 
     <Button
         android:id="@+id/showMultiSelectDialogButton"

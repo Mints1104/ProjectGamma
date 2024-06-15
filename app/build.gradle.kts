@@ -12,7 +12,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "0.12"
+        versionName = "0.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -67,7 +67,9 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-
+    implementation ("androidx.lifecycle:lifecycle-viewmodel:2.4.1")
+    implementation ("androidx.lifecycle:lifecycle-livedata:2.4.1")
+    implementation ("com.google.code.gson:gson:2.8.8")
     // optional - RxJava2 support
     implementation("androidx.datastore:datastore-preferences-rxjava2:1.1.1")
 

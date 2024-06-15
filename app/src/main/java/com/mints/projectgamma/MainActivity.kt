@@ -12,6 +12,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -19,6 +20,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.mints.projectgamma.api.ApiClient
 import com.mints.projectgamma.api.ApiService
 import com.mints.projectgamma.api.Invasion
@@ -31,90 +34,95 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+
+private const val MAX_VISITED_INVASIONS = 750
+
 class MainActivity : ComponentActivity() {
+
     private lateinit var resultTextView: TextView
     private lateinit var allInvasions: List<Invasion>
     private lateinit var filteredInvasions: MutableList<Invasion>
     private lateinit var selectedItems: MutableList<String>
-    private lateinit var items: Array<String>
+    private var items = arrayOf(
+        "Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
+        "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
+        "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
+        "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
+        "Electric","Typeless Female","Typeless Male","Showcase", "Kecleon")
+    private var defaultFilter = arrayOf("Dragon Female", "Dark Female",
+        "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
+        "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
+        "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
+        "Electric","Typeless Female","Typeless Male")
     private lateinit var selectedBooleanArray: BooleanArray
     private lateinit var selectedItemsTextView: TextView
     private lateinit var visitedInvasions: MutableList<Invasion>
-
     private var cliffCheck = false
     private var arloCheck = false
     private var sierraCheck = false
     private var giovanniCheck = false
-    private var dragonFemaleCheck = true
-    private var darkFemaleCheck = true
-    private var bugMaleCheck = true
-    private var fairyFemaleCheck = true
-    private var fightingFemaleCheck = true
-    private var fireFemaleCheck = true
-    private var flyingFemaleCheck = true
-    private var ghostCheck = true
-    private var grassMaleCheck = true
-    private var groundMaleCheck = true
-    private var iceFemaleCheck = true
-    private var normalMaleCheck = true
-    private var poisonFemaleCheck = true
-    private var psychicMaleCheck = true
-    private var rockMaleCheck = true
-    private var metalMaleCheck = true
-    private var waterFemaleCheck = true
-    private var waterMaleCheck = true
-    private var electricCheck = true
-    private var typelessFemaleCheck = true
-    private var typelessMaleCheck = true
+    private var dragonFemaleCheck = false
+    private var darkFemaleCheck = false
+    private var bugMaleCheck = false
+    private var fairyFemaleCheck = false
+    private var fightingFemaleCheck = false
+    private var fireFemaleCheck = false
+    private var flyingFemaleCheck = false
+    private var ghostCheck = false
+    private var grassMaleCheck = false
+    private var groundMaleCheck = false
+    private var iceFemaleCheck = false
+    private var normalMaleCheck = false
+    private var poisonFemaleCheck = false
+    private var psychicMaleCheck = false
+    private var rockMaleCheck = false
+    private var metalMaleCheck = false
+    private var waterFemaleCheck = false
+    private var waterMaleCheck = false
+    private var electricCheck = false
+    private var typelessFemaleCheck = false
+    private var typelessMaleCheck = false
     private var showcaseCheck = false
     private var kecleonCheck = false
-    private var allSelected = false
-
-
-
-
-
+    private var allSelected = true
 
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         val showMultiSelectDialogButton: Button = findViewById(R.id.showMultiSelectDialogButton)
-         selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
+        selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
         resultTextView = findViewById(R.id.text_view_result)
-        val button: Button = findViewById(R.id.button_make_api_call)
+        val buttonNYC: Button = findViewById(R.id.button_make_api_NYC_call)
+        val buttonLondon: Button = findViewById(R.id.button_make_api_London_call)
         val selectAllButton : Button = findViewById(R.id.select_deselect)
         visitedInvasions = mutableListOf()
+        selectedItems = mutableListOf()
 
-         items = arrayOf(
-            "Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
-            "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
-            "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
-            "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
-            "Electric","Typeless Female","Typeless Male","Showcase", "Kecleon"
-        )
+        loadFilterArray()
+        loadVisitedInvasions()
 
-        // Initialize selectedItems excluding "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase"
-        selectedItems = arrayOf(
-            "Dragon Female", "Dark Female",
-            "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
-            "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
-            "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
-            "Electric","Typeless Female","Typeless Male"
-        ).toMutableList()
-        // Initialize selectedBooleanArray based on selectedItems
-         selectedBooleanArray = BooleanArray(items.size) { index ->
-            when (items[index]) {
-                "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase" -> false
-                else -> true // or set to false if you want none to be checked by default
+        if(selectedItems.isEmpty()) {
+            selectedItems = defaultFilter.toMutableList()
+            selectedBooleanArray = BooleanArray(items.size) { index ->
+                when (items[index]) {
+                    "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase" -> false
+                    else -> true
+                }
             }
-        }
+        } else {
+            Log.d("TAG", "T:$selectedItems")
 
-        selectedItemsTextView.text = "Selected items: ${selectedItems.joinToString(", ")}"
-
-
+            selectedBooleanArray = BooleanArray(items.size) { index ->
+                selectedItems.contains(items[index])
+            }
+    }
+        selectedItemsTextView.text =
+            getString(R.string.selected_items, selectedItems.joinToString(", "))
+        createFilter()
+        makeApiCallLondon()
+        makeApiCallNYC()
         showMultiSelectDialogButton.setOnClickListener {
             val builder = AlertDialog.Builder(this)
             builder.setTitle("Select Items")
@@ -127,91 +135,67 @@ class MainActivity : ComponentActivity() {
                 selectedBooleanArray[which] = isChecked
             }
             builder.setPositiveButton("OK") { _, _ ->
-
                 if(selectedItems.containsAll(items.toList())) {
-                    selectedItemsTextView.text = "Selected items: All"
-                    newFilter()
+                    selectedItemsTextView.text = getString(R.string.all_items_selected)
+                    createFilter()
+                    saveFilterArray()
+
+                } else if(selectedItems.isEmpty()) {
+                    selectedItemsTextView.text = getString(R.string.no_items_selected)
+                    createFilter()
+                    saveFilterArray()
 
                 } else {
-                    selectedItemsTextView.text = "Selected items: ${selectedItems.joinToString(", ")}"
-                    newFilter()
+                    selectedItemsTextView.text =
+                        getString(R.string.selected_items, selectedItems.joinToString(", "))
                 }
-
-
-
             }
             builder.setNegativeButton("Cancel", null)
             builder.show()
+        }
 
 
-
+        buttonNYC.setOnClickListener {
+            createFilter()
+            makeApiCallNYC()
+            Log.d("TAG","Selected:$selectedItems")
 
         }
 
-        // Example makeApiCall and button click handling
-        makeApiCall()
-        button.setOnClickListener {
-            makeApiCall()
-        }
+        buttonLondon.setOnClickListener {
+            createFilter()
+            makeApiCallLondon()
+            Log.d("TAG","Selected:$selectedItems")
 
+
+        }
         selectAllButton.setOnClickListener {
             selectAll()
         }
-
         allInvasions = emptyList()
     }
 
-
-
-
-
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun selectAll() {
         if (!allSelected) {
-            // Select All
             selectedBooleanArray.fill(true)
             selectedItems.clear()
             selectedItems.addAll(items)
-            selectedItemsTextView.text = "Selected items: All"
+            selectedItemsTextView.text = getString(R.string.all_items_selected)
         } else {
-            // Deselect All
             selectedBooleanArray.fill(false)
             selectedItems.clear()
-            selectedItemsTextView.text = "Selected items: None"
+            selectedItemsTextView.text = getString(R.string.no_items_selected)
         }
         allSelected = !allSelected
-        newFilter()
+        createFilter()
     }
 
 
 
-    private fun newFilter() {
-        cliffCheck = false
-        arloCheck = false
-        sierraCheck = false
-        giovanniCheck = false
-        dragonFemaleCheck = false
-        darkFemaleCheck = false
-        bugMaleCheck = false
-        fairyFemaleCheck = false
-        fightingFemaleCheck = false
-        fireFemaleCheck = false
-        flyingFemaleCheck = false
-        ghostCheck = false
-        grassMaleCheck = false
-        groundMaleCheck = false
-        iceFemaleCheck = false
-        normalMaleCheck = false
-        poisonFemaleCheck = false
-        psychicMaleCheck = false
-        rockMaleCheck = false
-        metalMaleCheck = false
-        waterFemaleCheck = false
-        waterMaleCheck = false
-        electricCheck = false
-        typelessFemaleCheck = false
-        typelessMaleCheck = false
-        showcaseCheck = false
-        kecleonCheck = false
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createFilter() {
+        resetFilter()
 
         selectedItems.forEach { item ->
             when (item) {
@@ -244,16 +228,112 @@ class MainActivity : ComponentActivity() {
                 "Kecleon" -> kecleonCheck = true
             }
         }
+        saveFilterArray()
+
+    }
+    private fun resetFilter() {
+        cliffCheck = false
+        arloCheck = false
+        sierraCheck = false
+        giovanniCheck = false
+        dragonFemaleCheck = false
+        darkFemaleCheck = false
+        bugMaleCheck = false
+        fairyFemaleCheck = false
+        fightingFemaleCheck = false
+        fireFemaleCheck = false
+        flyingFemaleCheck = false
+        ghostCheck = false
+        grassMaleCheck = false
+        groundMaleCheck = false
+        iceFemaleCheck = false
+        normalMaleCheck = false
+        poisonFemaleCheck = false
+        psychicMaleCheck = false
+        rockMaleCheck = false
+        metalMaleCheck = false
+        waterFemaleCheck = false
+        waterMaleCheck = false
+        electricCheck = false
+        typelessFemaleCheck = false
+        typelessMaleCheck = false
+        showcaseCheck = false
+        kecleonCheck = false
     }
 
+    private fun saveFilterArray() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val gson = Gson()
 
+        if(selectedItems.isEmpty()) {
+            selectedBooleanArray = BooleanArray(items.size)
+
+        }
+
+        val json = gson.toJson(selectedItems)
+        editor.putString("filterArray", json)
+        editor.apply()
+    }
+
+    private fun loadFilterArray() {
+        val   sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val gson = Gson()
+        val json = sharedPreferences.getString("filterArray", null)
+        val type = object : TypeToken<MutableList<String>>() {}.type
+        selectedItems = gson.fromJson(json, type) ?: mutableListOf()
+
+
+        if(selectedItems.isNotEmpty()) {
+            Log.d("MainActivity", "TEST TEST: $selectedItems")
+
+            selectedBooleanArray = BooleanArray(items.size) { index ->
+                selectedItems.contains(items[index])
+
+            }
+        } else {
+            Log.d("MainActivity", "TEST 2: $selectedItems")
+
+            selectedItems = defaultFilter.toMutableList()
+        }
+
+    }
+
+    private fun saveVisitedInvasions() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val gson = Gson()
+        val limitedList = visitedInvasions.takeLast(MAX_VISITED_INVASIONS)
+        val json = gson.toJson(limitedList)
+
+        editor.putString("visitedInvasions", json)
+        editor.apply()
+    }
+
+    private fun loadVisitedInvasions() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val gson = Gson()
+        val json = sharedPreferences.getString("visitedInvasions", null)
+        val type = object : TypeToken<MutableList<Invasion>>() {}.type
+        val allVisitedInvasions = gson.fromJson<MutableList<Invasion>>(json, type) ?: mutableListOf()
+        visitedInvasions = allVisitedInvasions.takeLast(MAX_VISITED_INVASIONS).toMutableList()
+
+
+        if(visitedInvasions.isNotEmpty()) {
+
+            Log.d("TAG","Visited invasions:$visitedInvasions")
+        } else {
+            Log.d("TAG","Visited invasions is empty.")
+        }
+    }
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun makeApiCall() {
-        val apiService = ApiClient.retrofit.create(ApiService::class.java)
+    private fun makeApiCallNYC() {
+        val apiNYC = ApiClient.retrofitNYC.create(ApiService::class.java)
+
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = apiService.getInvasions()
+                val response = apiNYC.getInvasions()
                 withContext(Dispatchers.Main) {
                     handleSuccess(response.invasions)
                 }
@@ -264,20 +344,38 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
-
     @RequiresApi(Build.VERSION_CODES.O)
-    fun formatInvasionEndTime(invasionEnd: Long, timeZone: ZoneId = ZoneId.systemDefault()): String {
-        val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            .withZone(timeZone)
+    private fun makeApiCallLondon() {
+        val apiLondon = ApiClient.retrofitLondon.create(ApiService::class.java)
 
-        val formattedTime = formatter.format(Instant.ofEpochSecond(invasionEnd))
-        val timeZoneId = timeZone.id
 
-        return "$formattedTime Timezone:$timeZoneId"
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = apiLondon.getInvasions()
+                withContext(Dispatchers.Main) {
+                    handleSuccess(response.invasions)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    handleFailure(e)
+                }
+            }
+        }
     }
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun formatInvasionEndTime(invasionEnd: Long): String {
+        try {
+            val formatter = DateTimeFormatter.ofPattern("HH:mm:ss zzz")
+                .withZone(ZoneId.systemDefault())
 
+            val formattedTime = formatter.format(Instant.ofEpochSecond(invasionEnd))
+
+            return formattedTime
+        } catch (e: Exception) {
+            Log.e("TimeDebug", "Error formatting invasion end time: ${e.message}")
+            return "Error"
+        }
+    }
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleSuccess(invasions: List<Invasion>) {
         filteredInvasions = mutableListOf()
@@ -289,9 +387,7 @@ class MainActivity : ComponentActivity() {
             if (counter >= maxAtOnce) {
                 break
             }
-
             val characterName = DataMappings.characterNamesMap[invasion.character] ?: continue
-
             val isSelectedCharacter = when (characterName) {
                 "Cliff" -> cliffCheck
                 "Arlo" -> arloCheck
@@ -332,53 +428,58 @@ class MainActivity : ComponentActivity() {
         updateResultTextView()
     }
 
-
-
-
-
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, index: Int) {
-
+    private fun updateResultTextView() {
+        val stringBuilder = SpannableStringBuilder()
+        for ((index, invasion) in filteredInvasions.withIndex()) {
+            postData(invasion, stringBuilder, index)
+        }
+        resultTextView.text = stringBuilder
+        resultTextView.movementMethod = LinkMovementMethod.getInstance()
+    }
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, @Suppress("UNUSED_PARAMETER") index: Int) {
         if (!visitedInvasions.contains(invasion)) {
-            val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
-            val newEndTime = formatInvasionEndTime(invasion.invasion_end)
 
+            var source = ""
+            if(invasion.lat.toString().startsWith("40")) {
+                source = "New York"
+
+            } else if(invasion.lat.toString().startsWith("51")) {
+                source = "London"
+            }
+
+
+            val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
+            val endTime = formatInvasionEndTime(invasion.invasion_end)
             val teleportText = "Teleport"
             val copyText = "Copy"
             val deleteText = "Delete"
-            val invasionText =
-                "Name: ${invasion.name}\nLocation: $teleportText | $copyText | $deleteText\nEnding at: $newEndTime\nCharacter: ${invasion.characterName}\nType: ${invasion.typeDescription}\n\n"
-
+            val invasionText = "Name: ${invasion.name}\nLocation: $teleportText | $copyText | $deleteText\nSource: $source\nEnding at: $endTime\nCharacter: ${invasion.characterName}\n" +
+                    "Type: ${invasion.typeDescription}\n\n"
             val start = stringBuilder.length
             stringBuilder.append(invasionText)
-            val end = stringBuilder.length
-
             val spanStartTeleport = start + "Name: ${invasion.name}\nLocation: ".length
             val spanEndTeleport = spanStartTeleport + teleportText.length
-
             val spanStartCopy = spanEndTeleport + " | ".length
             val spanEndCopy = spanStartCopy + copyText.length
-
             val spanStartDelete = spanEndCopy + " | ".length
             val spanEndDelete = spanStartDelete + deleteText.length
 
-
-
             stringBuilder.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    // Open the link
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
                     widget.context.startActivity(intent)
 
-                    filteredInvasions.removeAt(index)
+                    filteredInvasions.remove(invasion)
                     visitedInvasions.add(invasion)
+                    saveVisitedInvasions()
                     updateResultTextView()
                 }
             }, spanStartTeleport, spanEndTeleport, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
             stringBuilder.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    // Copy the coordinates to clipboard
                     val clipboard = widget.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText("Coordinates", "${invasion.lat},${invasion.lng}")
                     clipboard.setPrimaryClip(clip)
@@ -389,34 +490,17 @@ class MainActivity : ComponentActivity() {
 
             stringBuilder.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    filteredInvasions.removeAt(index)
+                    filteredInvasions.remove(invasion)
                     visitedInvasions.add(invasion)
+                    saveVisitedInvasions()
                     updateResultTextView()
-
                 }
             }, spanStartDelete, spanEndDelete, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
 
-
-
-
-
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun updateResultTextView() {
-        val stringBuilder = SpannableStringBuilder()
-        for ((index, invasion) in filteredInvasions.withIndex()) {
-            postData(invasion, stringBuilder, index)
-        }
-        resultTextView.text = stringBuilder
-        resultTextView.movementMethod = LinkMovementMethod.getInstance()
-    }
-
-
-
     private fun handleFailure(exception: Exception) {
-        resultTextView.text = "API call failed: ${exception.message}"
+        resultTextView.text = getString(R.string.api_call_failed, exception.message)
     }
 
 
