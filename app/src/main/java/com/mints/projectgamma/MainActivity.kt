@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
         "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
         "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
         "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
-        "Electric","Typeless Female","Typeless Male","Showcase", "Kecleon")
+        "Electric","Typeless Female","Typeless Male", "Kecleon","Showcase")
     private var defaultFilter = arrayOf("Dragon Female", "Dark Female",
         "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
         "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
@@ -82,8 +82,9 @@ class MainActivity : ComponentActivity() {
     private var electricCheck = false
     private var typelessFemaleCheck = false
     private var typelessMaleCheck = false
-    private var showcaseCheck = false
     private var kecleonCheck = false
+    private var showcaseCheck = false
+
     private var allSelected = true
 
     @SuppressLint("MissingInflatedId")
@@ -107,7 +108,7 @@ class MainActivity : ComponentActivity() {
             selectedItems = defaultFilter.toMutableList()
             selectedBooleanArray = BooleanArray(items.size) { index ->
                 when (items[index]) {
-                    "Cliff", "Arlo", "Sierra", "Giovanni", "Showcase" -> false
+                    "Cliff", "Arlo", "Sierra", "Giovanni" -> false
                     else -> true
                 }
             }
@@ -117,7 +118,7 @@ class MainActivity : ComponentActivity() {
             selectedBooleanArray = BooleanArray(items.size) { index ->
                 selectedItems.contains(items[index])
             }
-    }
+        }
         selectedItemsTextView.text =
             getString(R.string.selected_items, selectedItems.joinToString(", "))
         createFilter()
@@ -224,8 +225,8 @@ class MainActivity : ComponentActivity() {
                 "Electric" -> electricCheck = true
                 "Typeless Female" -> typelessFemaleCheck = true
                 "Typeless Male" -> typelessMaleCheck = true
-                "Showcase" -> showcaseCheck = true
                 "Kecleon" -> kecleonCheck = true
+                "Showcase" -> showcaseCheck = true
             }
         }
         saveFilterArray()
@@ -257,8 +258,8 @@ class MainActivity : ComponentActivity() {
         electricCheck = false
         typelessFemaleCheck = false
         typelessMaleCheck = false
-        showcaseCheck = false
         kecleonCheck = false
+        showcaseCheck = false
     }
 
     private fun saveFilterArray() {
@@ -388,6 +389,27 @@ class MainActivity : ComponentActivity() {
                 break
             }
             val characterName = DataMappings.characterNamesMap[invasion.character] ?: continue
+
+            val characterType = DataMappings.characterNamesMap[invasion.type]
+
+
+
+
+
+            if(selectedItems.contains("Kecleon")) {
+                kecleonCheck = true
+
+            }
+
+            if(selectedItems.contains("Showcase")) {
+                showcaseCheck = true
+            }
+
+
+
+
+
+
             val isSelectedCharacter = when (characterName) {
                 "Cliff" -> cliffCheck
                 "Arlo" -> arloCheck
@@ -414,15 +436,39 @@ class MainActivity : ComponentActivity() {
                 "Electric" -> electricCheck
                 "Typeless Female" -> typelessFemaleCheck
                 "Typeless Male" -> typelessMaleCheck
-                "Showcase" -> showcaseCheck
-                "Kecleon" -> kecleonCheck
                 else -> false
             }
 
+
+
+
+
             if (isSelectedCharacter) {
+                Log.d("TAG:", "Adding 1 :${invasion.character}")
+
                 filteredInvasions.add(invasion)
                 counter += 1
             }
+
+            if(kecleonCheck && invasion.type == 8) {
+                Log.d("TAG:", " Adding 2 ${invasion.character}")
+                invasion.character = 1
+
+                filteredInvasions.add(invasion)
+                counter +=1
+                kecleonCheck = false
+            }
+
+            if(showcaseCheck && invasion.type == 9) {
+                Log.d("TAG:", " Adding 3 ${invasion.character}")
+                invasion.character = 0
+
+                filteredInvasions.add(invasion)
+                counter +=1
+                showcaseCheck = false
+            }
+
+
         }
 
         updateResultTextView()
