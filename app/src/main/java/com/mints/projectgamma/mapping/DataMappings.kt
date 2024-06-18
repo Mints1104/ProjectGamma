@@ -28,7 +28,8 @@ object DataMappings {
         5 to "Typeless Female",
         4 to "Typeless Male",
         1 to "Kecleon",
-        0 to "Showcase"
+        0 to "Showcase",
+        9998 to "Golden Lure"
     )
 
     val typeDescriptionsMap = mapOf(
@@ -36,6 +37,7 @@ object DataMappings {
         2 to "Leader",
         3 to "Giovanni",
         8 to "Kecleon",
-        9 to "Showcase"
+        9 to "Showcase",
+        7 to "Golden Lure"
     )
 }

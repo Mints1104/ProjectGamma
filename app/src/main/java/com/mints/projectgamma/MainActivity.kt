@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
@@ -27,9 +28,14 @@ import com.mints.projectgamma.api.ApiService
 import com.mints.projectgamma.api.Invasion
 import com.mints.projectgamma.mapping.DataMappings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -54,7 +60,12 @@ class MainActivity : ComponentActivity() {
         "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
         "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
         "Electric","Typeless Female","Typeless Male")
+
+    private lateinit var selectedDataSources: MutableList<String>
+    private var dataSources = arrayOf("NYC","London","Vancouver","Singapore","Sydney")
+    private var defaultDataSources = arrayOf("NYC")
     private lateinit var selectedBooleanArray: BooleanArray
+    private lateinit var selectedBooleanArrayData: BooleanArray
     private lateinit var selectedItemsTextView: TextView
     private lateinit var visitedInvasions: MutableList<Invasion>
     private var cliffCheck = false
@@ -84,8 +95,14 @@ class MainActivity : ComponentActivity() {
     private var typelessMaleCheck = false
     private var kecleonCheck = false
     private var showcaseCheck = false
-
     private var allSelected = true
+    private var nycChecked = false
+    private var singaporeChecked = false
+    private var londonChecked = false
+    private var vancouverChecked = false
+    private var sydneyChecked = false
+
+
 
     @SuppressLint("MissingInflatedId")
     @RequiresApi(Build.VERSION_CODES.O)
@@ -93,15 +110,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val showMultiSelectDialogButton: Button = findViewById(R.id.showMultiSelectDialogButton)
-        selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
-        resultTextView = findViewById(R.id.text_view_result)
-        val buttonNYC: Button = findViewById(R.id.button_make_api_NYC_call)
-        val buttonLondon: Button = findViewById(R.id.button_make_api_London_call)
+        val showMultiSelectDialogButtonData: Button = findViewById(R.id.showMultiSelectDialogButtonData)
+        val textBanner: TextView = findViewById(R.id.text_banner)
+        val apiCallButton: Button = findViewById(R.id.button_make_api_call)
         val selectAllButton : Button = findViewById(R.id.select_deselect)
+
+        textBanner.movementMethod = LinkMovementMethod.getInstance()
+            selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
+        resultTextView = findViewById(R.id.text_view_result)
+
         visitedInvasions = mutableListOf()
         selectedItems = mutableListOf()
+        selectedDataSources = mutableListOf()
 
         loadFilterArray()
+        loadDataSources()
         loadVisitedInvasions()
 
         if(selectedItems.isEmpty()) {
@@ -119,57 +142,107 @@ class MainActivity : ComponentActivity() {
                 selectedItems.contains(items[index])
             }
         }
+
+        if(selectedDataSources.isEmpty()) {
+            selectedDataSources = defaultDataSources.toMutableList()
+            selectedBooleanArrayData = BooleanArray(dataSources.size) { index ->
+                when (dataSources[index]) {
+                    "London", "Vancouver", "Singapore", "Sydney" -> false
+                    else -> true
+                }
+            }
+        } else {
+            Log.d("TAG", "T:$selectedDataSources")
+
+            selectedBooleanArrayData = BooleanArray(dataSources.size) { index ->
+                selectedDataSources.contains(dataSources[index])
+            }
+        }
+
+
         selectedItemsTextView.text =
             getString(R.string.selected_items, selectedItems.joinToString(", "))
         createFilter()
-        makeApiCallLondon()
-        makeApiCallNYC()
+        makeApiCalls()
+
         showMultiSelectDialogButton.setOnClickListener {
             val builder = AlertDialog.Builder(this)
             builder.setTitle("Select Items")
-            builder.setMultiChoiceItems(items, selectedBooleanArray) { _, which, isChecked ->
+            val tempSelectedItems = ArrayList(selectedItems)
+            val tempSelectedBooleanArray = selectedBooleanArray.clone()
+            builder.setMultiChoiceItems(items, tempSelectedBooleanArray) { _, which, isChecked ->
                 if (isChecked) {
-                    selectedItems.add(items[which])
+                    tempSelectedItems.add(items[which])
                 } else {
-                    selectedItems.remove(items[which])
+                    tempSelectedItems.remove(items[which])
                 }
-                selectedBooleanArray[which] = isChecked
+                tempSelectedBooleanArray[which] = isChecked
             }
+
             builder.setPositiveButton("OK") { _, _ ->
-                if(selectedItems.containsAll(items.toList())) {
+                selectedItems.clear()
+                selectedItems.addAll(tempSelectedItems)
+                System.arraycopy(tempSelectedBooleanArray, 0, selectedBooleanArray, 0, tempSelectedBooleanArray.size)
+
+                if (selectedItems.containsAll(items.toList())) {
                     selectedItemsTextView.text = getString(R.string.all_items_selected)
                     createFilter()
                     saveFilterArray()
-
-                } else if(selectedItems.isEmpty()) {
+                } else if (selectedItems.isEmpty()) {
                     selectedItemsTextView.text = getString(R.string.no_items_selected)
                     createFilter()
                     saveFilterArray()
-
                 } else {
                     selectedItemsTextView.text =
                         getString(R.string.selected_items, selectedItems.joinToString(", "))
+                    createFilter()
+                    saveFilterArray()
                 }
+
+
             }
+
             builder.setNegativeButton("Cancel", null)
             builder.show()
         }
 
 
-        buttonNYC.setOnClickListener {
-            createFilter()
-            makeApiCallNYC()
-            Log.d("TAG","Selected:$selectedItems")
+        showMultiSelectDialogButtonData.setOnClickListener {
+            val builder = AlertDialog.Builder(this)
+            builder.setTitle("Select Data Sources")
+            val tempSelectedDataSources = ArrayList(selectedDataSources)
+            val tempSelectedBooleanArrayData = selectedBooleanArrayData.clone()
+
+            builder.setMultiChoiceItems(dataSources, tempSelectedBooleanArrayData) { _, which, isChecked ->
+                if (isChecked) {
+                    tempSelectedDataSources.add(dataSources[which])
+                } else {
+                    tempSelectedDataSources.remove(dataSources[which])
+                }
+                tempSelectedBooleanArrayData[which] = isChecked
+            }
+
+            builder.setPositiveButton("OK") { _, _ ->
+                selectedDataSources.clear()
+                selectedDataSources.addAll(tempSelectedDataSources)
+                System.arraycopy(tempSelectedBooleanArrayData, 0, selectedBooleanArrayData, 0, tempSelectedBooleanArrayData.size)
+
+                createDataSourceFilter()
+            }
+
+            builder.setNegativeButton("Cancel", null)
+            builder.show()
+        }
+
+
+        apiCallButton.setOnClickListener {
+            createDataSourceFilter()
+            makeApiCalls()
+            Log.d("TAG","Selected:$selectedDataSources")
 
         }
 
-        buttonLondon.setOnClickListener {
-            createFilter()
-            makeApiCallLondon()
-            Log.d("TAG","Selected:$selectedItems")
 
-
-        }
         selectAllButton.setOnClickListener {
             selectAll()
         }
@@ -261,6 +334,29 @@ class MainActivity : ComponentActivity() {
         kecleonCheck = false
         showcaseCheck = false
     }
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createDataSourceFilter() {
+        resetDataSources()
+        selectedDataSources.forEach { item ->
+            when (item) {
+                "NYC" -> nycChecked = true
+                "London" -> londonChecked = true
+                "Vancouver" -> vancouverChecked = true
+                "Singapore" -> singaporeChecked = true
+                "Sydney" -> sydneyChecked = true
+            }
+        }
+        saveDataSources()
+    }
+
+
+    private fun resetDataSources() {
+         nycChecked = false
+         singaporeChecked = false
+         londonChecked = false
+        vancouverChecked = false
+         sydneyChecked = false
+    }
 
     private fun saveFilterArray() {
         val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
@@ -274,6 +370,22 @@ class MainActivity : ComponentActivity() {
 
         val json = gson.toJson(selectedItems)
         editor.putString("filterArray", json)
+        editor.apply()
+    }
+
+
+    private fun saveDataSources() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val gson = Gson()
+
+        if(selectedDataSources.isEmpty()) {
+            selectedBooleanArrayData = BooleanArray(dataSources.size)
+
+        }
+
+        val json = gson.toJson(selectedDataSources)
+        editor.putString("filterDataArray", json)
         editor.apply()
     }
 
@@ -299,6 +411,26 @@ class MainActivity : ComponentActivity() {
         }
 
     }
+    private fun loadDataSources() {
+        val   sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val gson = Gson()
+        val json = sharedPreferences.getString("filterDataArray", null)
+        val type = object : TypeToken<MutableList<String>>() {}.type
+        selectedDataSources = gson.fromJson(json, type) ?: mutableListOf()
+        if(selectedDataSources.isNotEmpty()) {
+
+            selectedBooleanArrayData = BooleanArray(dataSources.size) { index ->
+                selectedDataSources.contains(dataSources[index])
+
+            }
+        } else {
+
+            selectedDataSources = defaultDataSources.toMutableList()
+        }
+
+    }
+
+
 
     private fun saveVisitedInvasions() {
         val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
@@ -306,7 +438,6 @@ class MainActivity : ComponentActivity() {
         val gson = Gson()
         val limitedList = visitedInvasions.takeLast(MAX_VISITED_INVASIONS)
         val json = gson.toJson(limitedList)
-
         editor.putString("visitedInvasions", json)
         editor.apply()
     }
@@ -319,7 +450,6 @@ class MainActivity : ComponentActivity() {
         val allVisitedInvasions = gson.fromJson<MutableList<Invasion>>(json, type) ?: mutableListOf()
         visitedInvasions = allVisitedInvasions.takeLast(MAX_VISITED_INVASIONS).toMutableList()
 
-
         if(visitedInvasions.isNotEmpty()) {
 
             Log.d("TAG","Visited invasions:$visitedInvasions")
@@ -328,15 +458,32 @@ class MainActivity : ComponentActivity() {
         }
     }
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun makeApiCallNYC() {
-        val apiNYC = ApiClient.retrofitNYC.create(ApiService::class.java)
-
-
+    private fun makeApiCalls() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = apiNYC.getInvasions()
+                val results = coroutineScope {
+                    val deferreds = mutableListOf<Deferred<List<Invasion>>>()
+
+                    if (selectedDataSources.contains("NYC")) {
+                        deferreds.add(async { makeApiCall(ApiClient.retrofitNYC) })
+                    }
+                    if (selectedDataSources.contains("London")) {
+                        deferreds.add(async { makeApiCall(ApiClient.retrofitLondon) })
+                    }
+                    if (selectedDataSources.contains("Singapore")) {
+                        deferreds.add(async { makeApiCall(ApiClient.retrofitSingapore) })
+                    }
+                    if (selectedDataSources.contains("Vancouver")) {
+                        deferreds.add(async { makeApiCall(ApiClient.retrofitVancouver) })
+                    }
+                    if (selectedDataSources.contains("Sydney")) {
+                        deferreds.add(async { makeApiCall(ApiClient.retrofitSydney) })
+                    }
+
+                    deferreds.awaitAll().flatten()
+                }
                 withContext(Dispatchers.Main) {
-                    handleSuccess(response.invasions)
+                    handleSuccess(results)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -345,22 +492,19 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun makeApiCallLondon() {
-        val apiLondon = ApiClient.retrofitLondon.create(ApiService::class.java)
+    private suspend fun makeApiCall(apiClient: Retrofit): List<Invasion> {
+        val apiService = apiClient.create(ApiService::class.java)
 
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = apiLondon.getInvasions()
-                withContext(Dispatchers.Main) {
-                    handleSuccess(response.invasions)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    handleFailure(e)
-                }
+        return try {
+            val response = apiService.getInvasions()
+            response.invasions
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                handleFailure(e)
             }
+            emptyList()
         }
     }
     @RequiresApi(Build.VERSION_CODES.O)
@@ -389,27 +533,12 @@ class MainActivity : ComponentActivity() {
                 break
             }
             val characterName = DataMappings.characterNamesMap[invasion.character] ?: continue
-
-            val characterType = DataMappings.characterNamesMap[invasion.type]
-
-
-
-
-
             if(selectedItems.contains("Kecleon")) {
                 kecleonCheck = true
-
             }
-
             if(selectedItems.contains("Showcase")) {
                 showcaseCheck = true
             }
-
-
-
-
-
-
             val isSelectedCharacter = when (characterName) {
                 "Cliff" -> cliffCheck
                 "Arlo" -> arloCheck
@@ -438,11 +567,6 @@ class MainActivity : ComponentActivity() {
                 "Typeless Male" -> typelessMaleCheck
                 else -> false
             }
-
-
-
-
-
             if (isSelectedCharacter) {
                 Log.d("TAG:", "Adding 1 :${invasion.character}")
 
@@ -486,23 +610,25 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, @Suppress("UNUSED_PARAMETER") index: Int) {
         if (!visitedInvasions.contains(invasion)) {
-
-            var source = ""
-            if(invasion.lat.toString().startsWith("40")) {
-                source = "New York"
-
-            } else if(invasion.lat.toString().startsWith("51")) {
-                source = "London"
+            val source: String = when {
+                invasion.lat.toString().startsWith("40") -> "New York"
+                invasion.lat.toString().startsWith("51") -> "London"
+                invasion.lat.toString().startsWith("-33") || invasion.lat.toString().startsWith("-34") -> "Sydney"
+                invasion.lat.toString().startsWith("1") -> "Singapore"
+                invasion.lat.toString().startsWith("49") -> "Vancouver"
+                else -> "Unknown"
             }
-
-
             val link = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
             val endTime = formatInvasionEndTime(invasion.invasion_end)
             val teleportText = "Teleport"
             val copyText = "Copy"
             val deleteText = "Delete"
-            val invasionText = "Name: ${invasion.name}\nLocation: $teleportText | $copyText | $deleteText\nSource: $source\nEnding at: $endTime\nCharacter: ${invasion.characterName}\n" +
-                    "Type: ${invasion.typeDescription}\n\n"
+            val invasionText = "Name: ${invasion.name}\n" +
+                    "Location: $teleportText | $copyText | $deleteText\n" +
+                    "Character: ${invasion.characterName}\n" +
+                    "Type: ${invasion.typeDescription}\n" +
+                     "Source: $source\n" +
+                    "Ending at: $endTime\n\n"
             val start = stringBuilder.length
             stringBuilder.append(invasionText)
             val spanStartTeleport = start + "Name: ${invasion.name}\nLocation: ".length
@@ -548,8 +674,6 @@ class MainActivity : ComponentActivity() {
     private fun handleFailure(exception: Exception) {
         resultTextView.text = getString(R.string.api_call_failed, exception.message)
     }
-
-
     private fun sortInvasionsByEndTime(invasions: List<Invasion>): List<Invasion> {
         return invasions.sortedByDescending { it.invasion_end }
     }
