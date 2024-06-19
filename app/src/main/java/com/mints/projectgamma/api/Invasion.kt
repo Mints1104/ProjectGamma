@@ -3,12 +3,12 @@ package com.mints.projectgamma.api
 import com.mints.projectgamma.mapping.DataMappings
 
 data class Invasion(
-    val name: String,
+    var name: String,
     val lat: Double,
     val lng: Double,
     val invasion_start: Long,
     val invasion_end: Long,
-    val character: Int,
+    var character: Int,
     val type: Int
 ) {
     val characterName: String

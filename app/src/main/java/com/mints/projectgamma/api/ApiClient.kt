@@ -8,27 +8,43 @@ import retrofit2.http.GET
 object ApiClient {
     private const val BASE_URL_NYC = "https://nycpokemap.com"
     private const val BASE_URL_LONDON = "https://londonpogomap.com"
+    private const val BASE_URL_SG = "https://sgpokemap.com/"
+    private const val BASE_URL_VANCOUVER = "https://vanpokemap.com/"
+    private const val BASE_URL_SYDNEY = "https://sydneypogomap.com/"
 
-    val retrofitNYC = Retrofit.Builder()
+    val retrofitNYC: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL_NYC)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-     val retrofitLondon = Retrofit.Builder()
+    val retrofitLondon: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL_LONDON)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    interface PokeMapApiNYC {
+    val retrofitSingapore: Retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL_SG)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val retrofitVancouver: Retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL_VANCOUVER)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val retrofitSydney: Retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL_SYDNEY)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    interface PokeMapApi {
         @GET("/pokestop.php")
         suspend fun getInvasions(): List<Invasion>
     }
 
-    interface PokeMapApiLondon {
-        @GET("/pokestop.php")
-        suspend fun getInvasions(): List<Invasion>
-    }
-
-    val apiNYC: PokeMapApiNYC = retrofitNYC.create(PokeMapApiNYC::class.java)
-    val apiLondon: PokeMapApiLondon = retrofitLondon.create(PokeMapApiLondon::class.java)
+    val apiNYC: PokeMapApi = retrofitNYC.create(PokeMapApi::class.java)
+    val apiLondon: PokeMapApi = retrofitLondon.create(PokeMapApi::class.java)
+    val apiSingapore: PokeMapApi = retrofitSingapore.create(PokeMapApi::class.java)
+    val apiVancouver: PokeMapApi = retrofitVancouver.create(PokeMapApi::class.java)
+    val apiSydney: PokeMapApi = retrofitSydney.create(PokeMapApi::class.java)
 }
