@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Base application theme for Light mode -->
     <style name="Theme.ProjectGamma" parent="Theme.MaterialComponents.Light">
         <!-- Customize your light theme here -->
         <item name="colorPrimary">@color/colorPrimary</item>
@@ -16,11 +15,4 @@
         <item name="android:forceDarkAllowed">true</item>
 
     </style>
-
-    <style name="Theme.ProjectGamma.Dark" parent="Theme.MaterialComponents.DayNight">
-        <item name="android:windowBackground">@color/windowBackgroundDark</item>
-        ?android:attr/textColorPrimary
-
-    </style>
-
 </resources>
