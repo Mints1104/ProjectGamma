@@ -3,13 +3,14 @@
     <string name="hyperlink"> <a href="https://ipogo.app/?coords=">Teleport</a></string>
     <string name="drop_down_menu">Dropdown Menu</string>
     <string name="select">Select </string>
-    <string name="project_gamma_header">Project Gamma (v0.23) by Mints </string>
+    <string name="project_gamma_header">Project Gamma (v0.29 Dev Build) by Mints </string>
     <string name="project_gamma_info">Join the <a href="https://discord.gg/GnnaQBxB">discord</a> to stay up-to-date.</string>
+    <string name="saved_grunts_info">Total stored invasions: %d/%d</string>
+    <string name="number_of_grunts_beat">Grunts battled this session: %d</string>
+    <string name="favorites_text">Open Favorites</string>
     <string name="load_refresh_data">Load/Refresh Data</string>
     <string name="load_refresh_data_London">Load London Data</string>
-
     <string name="select_data_options">Select Data Sources</string>
-
     <string name="select_options">Select Invasions</string>
     <string name="selected_items_will_appear_here">Selected items will appear here</string>
     <string name="loading_data_may_take_a_few_seconds">Loading data may take a few seconds.</string>
@@ -18,6 +19,10 @@
     <string name="api_call_failed">API call failed: %1$s</string>
     <string name="all_items_selected">Selected items: All</string>
     <string name="select_deselect_all_invasions">Select/Deselect all invasions</string>
+    <string name="home_coordinates">Home Coordinates</string>
+    <string name="favorites">Favorites</string>
+    <string name="favorites_will_appear_here"></string>
+
 </resources>
 
 

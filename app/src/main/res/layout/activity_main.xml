@@ -27,6 +27,22 @@
             android:layout_marginTop="-30dp"
             android:text="@string/project_gamma_info" />
 
+        <TextView
+            android:id="@+id/saved_grunts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:layout_marginTop="-30dp"
+            android:text="@string/saved_grunts_info" />
+
+        <TextView
+            android:id="@+id/session_grunts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:layout_marginTop="-30dp"
+            android:text="@string/number_of_grunts_beat" />
+
         <Button
             android:id="@+id/button_make_api_call"
             android:layout_width="match_parent"
@@ -46,6 +62,15 @@
             android:text="@string/select_options" />
 
         <Button
+            android:id="@+id/select_deselect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+
+            android:text="@string/select_deselect_all_invasions" />
+
+        <Button
             android:id="@+id/showMultiSelectDialogButtonData"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -55,27 +80,55 @@
             android:text="@string/select_data_options" />
 
         <Button
-            android:id="@+id/select_deselect"
+            android:id="@+id/favoritesButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
 
-            android:text="@string/select_deselect_all_invasions" />
+            android:text="@string/favorites_text"
+            />
+
+
+
+
+
+
+
+
+
+
+
+
+        <EditText
+            android:id="@+id/userHomeCoordinates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:hint="@string/home_coordinates"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:minHeight="48dp" />
+
+
+
+
+
 
         <TextView
             android:id="@+id/selectedItemsTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
-            android:layout_marginTop="16dp"
             android:text="@string/selected_items_will_appear_here" />
 
         <TextView
             android:id="@+id/text_view_result"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="16dp"
             android:text="@string/loading_data_may_take_a_few_seconds" />
     </LinearLayout>
 

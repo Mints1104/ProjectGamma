@@ -8,14 +8,17 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -39,9 +42,19 @@ import retrofit2.Retrofit
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import android.view.LayoutInflater
 
 
-private const val MAX_VISITED_INVASIONS = 750
+
+import android.app.Dialog
+import android.content.ComponentName
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.TextPaint
+import android.view.Window
+import android.view.WindowManager
+
+private const val MAX_VISITED_INVASIONS = 2000
 
 class MainActivity : ComponentActivity() {
 
@@ -50,23 +63,23 @@ class MainActivity : ComponentActivity() {
     private lateinit var filteredInvasions: MutableList<Invasion>
     private lateinit var selectedItems: MutableList<String>
     private var items = arrayOf(
-        "Cliff","Arlo","Sierra","Giovanni","Dragon Female", "Dark Female",
+        "Cliff","Arlo","Sierra","Giovanni", "Kecleon","Showcase", "Dragon Female", "Dark Female",
         "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
         "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
         "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
-        "Electric","Typeless Female","Typeless Male", "Kecleon","Showcase")
+        "Electric","Typeless Female","Typeless Male")
     private var defaultFilter = arrayOf("Dragon Female", "Dark Female",
         "Bug Male","Fairy Female", "Fighting Female", "Fire Female", "Flying Female",
         "Ghost","Grass Male","Ground Male","Ice Female","Normal Male","Poison Female",
         "Psychic Male","Rock Male","Steel Male","Water Female","Water Male",
         "Electric","Typeless Female","Typeless Male")
-
     private lateinit var selectedDataSources: MutableList<String>
     private var dataSources = arrayOf("NYC","London","Vancouver","Singapore","Sydney")
     private var defaultDataSources = arrayOf("NYC")
     private lateinit var selectedBooleanArray: BooleanArray
     private lateinit var selectedBooleanArrayData: BooleanArray
     private lateinit var selectedItemsTextView: TextView
+    private lateinit var loadedGrunts: TextView
     private lateinit var visitedInvasions: MutableList<Invasion>
     private var cliffCheck = false
     private var arloCheck = false
@@ -101,6 +114,14 @@ class MainActivity : ComponentActivity() {
     private var londonChecked = false
     private var vancouverChecked = false
     private var sydneyChecked = false
+    private var placeAccepted = false
+    private var storedFavourites: MutableList<FavouriteLocation> = mutableListOf()
+    private var initialiseFavoritesList = false
+
+    private lateinit var homeCoordinates:String
+    private var sessionGruntsBeat = 0
+    private lateinit var sessionGrunts: TextView
+    private lateinit var favoritesText: TextView
 
 
 
@@ -114,18 +135,96 @@ class MainActivity : ComponentActivity() {
         val textBanner: TextView = findViewById(R.id.text_banner)
         val apiCallButton: Button = findViewById(R.id.button_make_api_call)
         val selectAllButton : Button = findViewById(R.id.select_deselect)
-
+        val selectFavorites : Button = findViewById(R.id.favoritesButton)
         textBanner.movementMethod = LinkMovementMethod.getInstance()
-            selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
-        resultTextView = findViewById(R.id.text_view_result)
+        selectedItemsTextView  = findViewById(R.id.selectedItemsTextView)
 
+        resultTextView = findViewById(R.id.text_view_result)
         visitedInvasions = mutableListOf()
         selectedItems = mutableListOf()
         selectedDataSources = mutableListOf()
 
+
+
+        selectFavorites.setOnClickListener { view->
+
+
+
+            showFullScreenDialog(view)
+        }
+
         loadFilterArray()
         loadDataSources()
         loadVisitedInvasions()
+        loadHomeCoordinates()
+
+        loadedGrunts = findViewById(R.id.saved_grunts)
+
+        sessionGrunts = findViewById(R.id.session_grunts)
+        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
+
+        loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
+
+        Log.d("TAG","Loading home coords: $homeCoordinates")
+        printJournal()
+
+        val homeCoordinatesEditText: EditText = findViewById(R.id.userHomeCoordinates)
+
+        homeCoordinatesEditText.setText(homeCoordinates)
+        val coordinatesRegex = """^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$""".toRegex()
+
+        // Handle the "Done" action on the keyboard
+        homeCoordinatesEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val input = homeCoordinatesEditText.text.toString().trim()
+                if (coordinatesRegex.matches(input)) {
+                    homeCoordinates = input
+                    saveHomeCoordinates()
+                    Toast.makeText(this, "Coordinates saved: $homeCoordinates", Toast.LENGTH_SHORT).show()
+
+                    // Hide the keyboard and clear focus
+                    hideKeyboard()
+                    homeCoordinatesEditText.clearFocus()
+                    true  // Return true to indicate that the action was handled
+                } else {
+                    if(homeCoordinates.isEmpty() || input.isEmpty()) {
+                        homeCoordinatesEditText.setText("")
+
+
+                        Toast.makeText(this, "Home coordinates cleared.", Toast.LENGTH_SHORT).show()
+                        homeCoordinates = ""
+                        saveHomeCoordinates()
+
+
+                    } else {
+                        homeCoordinatesEditText.setText(homeCoordinates)
+                        Toast.makeText(this, "Invalid coordinates format. Please enter valid coordinates.", Toast.LENGTH_SHORT).show()
+
+                    }
+
+                    hideKeyboard()
+                    homeCoordinatesEditText.clearFocus()
+
+                    false  // Return false to indicate that the action was not handled
+                }
+            } else {
+                false  // Return false to let the system handle other actions
+            }
+        }
+
+        // Clear focus when clicking outside the EditText
+        homeCoordinatesEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                hideKeyboard()
+            }
+        }
+
+
+
+
+
+
+        Log.d("TAG","Stored visited invasions:${visitedInvasions.size}")
 
         if(selectedItems.isEmpty()) {
             selectedItems = defaultFilter.toMutableList()
@@ -136,8 +235,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } else {
-            Log.d("TAG", "T:$selectedItems")
-
             selectedBooleanArray = BooleanArray(items.size) { index ->
                 selectedItems.contains(items[index])
             }
@@ -158,16 +255,16 @@ class MainActivity : ComponentActivity() {
                 selectedDataSources.contains(dataSources[index])
             }
         }
-
-
         selectedItemsTextView.text =
             getString(R.string.selected_items, selectedItems.joinToString(", "))
         createFilter()
         makeApiCalls()
 
+
+
         showMultiSelectDialogButton.setOnClickListener {
             val builder = AlertDialog.Builder(this)
-            builder.setTitle("Select Items")
+            builder.setTitle("Select Invasions")
             val tempSelectedItems = ArrayList(selectedItems)
             val tempSelectedBooleanArray = selectedBooleanArray.clone()
             builder.setMultiChoiceItems(items, tempSelectedBooleanArray) { _, which, isChecked ->
@@ -178,12 +275,10 @@ class MainActivity : ComponentActivity() {
                 }
                 tempSelectedBooleanArray[which] = isChecked
             }
-
             builder.setPositiveButton("OK") { _, _ ->
                 selectedItems.clear()
                 selectedItems.addAll(tempSelectedItems)
-                System.arraycopy(tempSelectedBooleanArray, 0, selectedBooleanArray, 0, tempSelectedBooleanArray.size)
-
+                tempSelectedBooleanArray.copyInto(selectedBooleanArray)
                 if (selectedItems.containsAll(items.toList())) {
                     selectedItemsTextView.text = getString(R.string.all_items_selected)
                     createFilter()
@@ -198,21 +293,16 @@ class MainActivity : ComponentActivity() {
                     createFilter()
                     saveFilterArray()
                 }
-
-
             }
-
             builder.setNegativeButton("Cancel", null)
             builder.show()
         }
-
 
         showMultiSelectDialogButtonData.setOnClickListener {
             val builder = AlertDialog.Builder(this)
             builder.setTitle("Select Data Sources")
             val tempSelectedDataSources = ArrayList(selectedDataSources)
             val tempSelectedBooleanArrayData = selectedBooleanArrayData.clone()
-
             builder.setMultiChoiceItems(dataSources, tempSelectedBooleanArrayData) { _, which, isChecked ->
                 if (isChecked) {
                     tempSelectedDataSources.add(dataSources[which])
@@ -221,33 +311,103 @@ class MainActivity : ComponentActivity() {
                 }
                 tempSelectedBooleanArrayData[which] = isChecked
             }
-
             builder.setPositiveButton("OK") { _, _ ->
                 selectedDataSources.clear()
                 selectedDataSources.addAll(tempSelectedDataSources)
-                System.arraycopy(tempSelectedBooleanArrayData, 0, selectedBooleanArrayData, 0, tempSelectedBooleanArrayData.size)
-
+                tempSelectedBooleanArrayData.copyInto(selectedBooleanArrayData)
                 createDataSourceFilter()
             }
-
             builder.setNegativeButton("Cancel", null)
             builder.show()
         }
 
-
         apiCallButton.setOnClickListener {
             createDataSourceFilter()
             makeApiCalls()
-            Log.d("TAG","Selected:$selectedDataSources")
-
         }
-
 
         selectAllButton.setOnClickListener {
             selectAll()
         }
         allInvasions = emptyList()
     }
+
+
+    private fun showFullScreenDialog(view: View) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_fullscreen)
+        dialog.window?.setLayout(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT
+        )
+
+        // Initialize views directly from the dialog
+        val closeButton: Button = dialog.findViewById(R.id.dialog_close_button)
+        val addButton: Button = dialog.findViewById(R.id.dialog_add_button)
+        favoritesText = dialog.findViewById(R.id.favoritesTextView)
+
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+
+
+
+
+
+        loadLocations()
+        updateUIWithFavourites()
+        Log.d("Load Location","$storedFavourites")
+
+        addButton.setOnClickListener {
+            // Pass favoritesTextView to showAddFavoriteDialog
+            showAddFavoriteDialog()
+        }
+
+        dialog.show()
+    }
+
+
+
+    private fun showAddFavoriteDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_favorite, null)
+        val editTextLocationName: EditText = dialogView.findViewById(R.id.editTextLocationName)
+        val editTextCoordinates: EditText = dialogView.findViewById(R.id.editTextCoordinates)
+        val buttonCancel: Button = dialogView.findViewById(R.id.buttonCancel)
+        val buttonAdd: Button = dialogView.findViewById(R.id.buttonAdd)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+
+        buttonCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        buttonAdd.setOnClickListener {
+            val locationName = editTextLocationName.text.toString()
+            val coordinates = editTextCoordinates.text.toString()
+
+            addFavourites(locationName, coordinates)
+
+            if (placeAccepted) { // Make sure this flag is set appropriately in addFavourites
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "Invalid or duplicate location", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
+    }
+
+
+
+
+
+
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun selectAll() {
@@ -263,6 +423,23 @@ class MainActivity : ComponentActivity() {
         }
         allSelected = !allSelected
         createFilter()
+    }
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val view = this.currentFocus
+        if (view != null) {
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (currentFocus != null) {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(currentFocus!!.windowToken, 0)
+            currentFocus!!.clearFocus()
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
 
@@ -354,7 +531,7 @@ class MainActivity : ComponentActivity() {
          nycChecked = false
          singaporeChecked = false
          londonChecked = false
-        vancouverChecked = false
+         vancouverChecked = false
          sydneyChecked = false
     }
 
@@ -365,48 +542,50 @@ class MainActivity : ComponentActivity() {
 
         if(selectedItems.isEmpty()) {
             selectedBooleanArray = BooleanArray(items.size)
-
         }
-
         val json = gson.toJson(selectedItems)
         editor.putString("filterArray", json)
         editor.apply()
     }
 
+    private fun saveHomeCoordinates() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+
+        editor.putString("homeCoordinates", homeCoordinates)
+        editor.apply()
+    }
+
+
+    private fun loadHomeCoordinates() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        homeCoordinates = sharedPreferences.getString("homeCoordinates", "") ?: ""
+    }
 
     private fun saveDataSources() {
         val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         val gson = Gson()
-
         if(selectedDataSources.isEmpty()) {
             selectedBooleanArrayData = BooleanArray(dataSources.size)
-
         }
-
         val json = gson.toJson(selectedDataSources)
         editor.putString("filterDataArray", json)
         editor.apply()
     }
 
     private fun loadFilterArray() {
-        val   sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
         val gson = Gson()
         val json = sharedPreferences.getString("filterArray", null)
         val type = object : TypeToken<MutableList<String>>() {}.type
         selectedItems = gson.fromJson(json, type) ?: mutableListOf()
 
-
         if(selectedItems.isNotEmpty()) {
-            Log.d("MainActivity", "TEST TEST: $selectedItems")
-
             selectedBooleanArray = BooleanArray(items.size) { index ->
                 selectedItems.contains(items[index])
-
             }
         } else {
-            Log.d("MainActivity", "TEST 2: $selectedItems")
-
             selectedItems = defaultFilter.toMutableList()
         }
 
@@ -417,21 +596,15 @@ class MainActivity : ComponentActivity() {
         val json = sharedPreferences.getString("filterDataArray", null)
         val type = object : TypeToken<MutableList<String>>() {}.type
         selectedDataSources = gson.fromJson(json, type) ?: mutableListOf()
-        if(selectedDataSources.isNotEmpty()) {
 
+        if(selectedDataSources.isNotEmpty()) {
             selectedBooleanArrayData = BooleanArray(dataSources.size) { index ->
                 selectedDataSources.contains(dataSources[index])
-
             }
         } else {
-
             selectedDataSources = defaultDataSources.toMutableList()
         }
-
     }
-
-
-
     private fun saveVisitedInvasions() {
         val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
@@ -449,13 +622,6 @@ class MainActivity : ComponentActivity() {
         val type = object : TypeToken<MutableList<Invasion>>() {}.type
         val allVisitedInvasions = gson.fromJson<MutableList<Invasion>>(json, type) ?: mutableListOf()
         visitedInvasions = allVisitedInvasions.takeLast(MAX_VISITED_INVASIONS).toMutableList()
-
-        if(visitedInvasions.isNotEmpty()) {
-
-            Log.d("TAG","Visited invasions:$visitedInvasions")
-        } else {
-            Log.d("TAG","Visited invasions is empty.")
-        }
     }
     @RequiresApi(Build.VERSION_CODES.O)
     private fun makeApiCalls() {
@@ -476,6 +642,7 @@ class MainActivity : ComponentActivity() {
                     if (selectedDataSources.contains("Vancouver")) {
                         deferreds.add(async { makeApiCall(ApiClient.retrofitVancouver) })
                     }
+
                     if (selectedDataSources.contains("Sydney")) {
                         deferreds.add(async { makeApiCall(ApiClient.retrofitSydney) })
                     }
@@ -568,47 +735,43 @@ class MainActivity : ComponentActivity() {
                 else -> false
             }
             if (isSelectedCharacter) {
-                Log.d("TAG:", "Adding 1 :${invasion.character}")
-
                 filteredInvasions.add(invasion)
                 counter += 1
             }
 
             if(kecleonCheck && invasion.type == 8) {
-                Log.d("TAG:", " Adding 2 ${invasion.character}")
                 invasion.character = 1
-
                 filteredInvasions.add(invasion)
                 counter +=1
                 kecleonCheck = false
             }
 
             if(showcaseCheck && invasion.type == 9) {
-                Log.d("TAG:", " Adding 3 ${invasion.character}")
                 invasion.character = 0
-
                 filteredInvasions.add(invasion)
                 counter +=1
                 showcaseCheck = false
             }
-
-
         }
-
         updateResultTextView()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateResultTextView() {
         val stringBuilder = SpannableStringBuilder()
-        for ((index, invasion) in filteredInvasions.withIndex()) {
-            postData(invasion, stringBuilder, index)
+        for (invasion in filteredInvasions) {
+            postData(invasion, stringBuilder)
         }
         resultTextView.text = stringBuilder
         resultTextView.movementMethod = LinkMovementMethod.getInstance()
     }
+
+
+    /*
+
+
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder, @Suppress("UNUSED_PARAMETER") index: Int) {
+    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder) {
         if (!visitedInvasions.contains(invasion)) {
             val source: String = when {
                 invasion.lat.toString().startsWith("40") -> "New York"
@@ -627,7 +790,7 @@ class MainActivity : ComponentActivity() {
                     "Location: $teleportText | $copyText | $deleteText\n" +
                     "Character: ${invasion.characterName}\n" +
                     "Type: ${invasion.typeDescription}\n" +
-                     "Source: $source\n" +
+                    "Source: $source\n" +
                     "Ending at: $endTime\n\n"
             val start = stringBuilder.length
             stringBuilder.append(invasionText)
@@ -646,7 +809,24 @@ class MainActivity : ComponentActivity() {
                     filteredInvasions.remove(invasion)
                     visitedInvasions.add(invasion)
                     saveVisitedInvasions()
+
+                    if(invasion.characterName== "Kecleon" || invasion.characterName == "Showcase") {
+                       Log.d("TAG",invasion.characterName)
+
+                    } else {
+                        sessionGruntsBeat++
+
+                        Log.d("TAG","Success $sessionGruntsBeat")
+                        Log.d("TAG", invasion.characterName)
+
+                        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
+
+                    }
+                    loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
                     updateResultTextView()
+
+
+
                 }
             }, spanStartTeleport, spanEndTeleport, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
@@ -665,11 +845,337 @@ class MainActivity : ComponentActivity() {
                     filteredInvasions.remove(invasion)
                     visitedInvasions.add(invasion)
                     saveVisitedInvasions()
+
+                    if(invasion.characterName== "Kecleon" || invasion.characterName == "Showcase") {
+                        Log.d("TAG",invasion.characterName)
+
+                    } else {
+                        sessionGruntsBeat++
+
+                        Log.d("TAG","Success $sessionGruntsBeat")
+                        Log.d("TAG", invasion.characterName)
+
+                        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
+
+
+                    }
+                    loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
+
                     updateResultTextView()
+
                 }
             }, spanStartDelete, spanEndDelete, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
+
+
+     */
+
+
+
+
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder) {
+        if (!visitedInvasions.contains(invasion)) {
+            val source: String = when {
+                invasion.lat.toString().startsWith("40") -> "New York"
+                invasion.lat.toString().startsWith("51") -> "London"
+                invasion.lat.toString().startsWith("-33") || invasion.lat.toString().startsWith("-34") -> "Sydney"
+                invasion.lat.toString().startsWith("1") -> "Singapore"
+                invasion.lat.toString().startsWith("49") -> "Vancouver"
+                else -> "Unknown"
+            }
+            val ipogoLink = "https://ipogo.app/?coords=${invasion.lat},${invasion.lng}"
+            val endTime = formatInvasionEndTime(invasion.invasion_end)
+            val teleportText = "Teleport"
+            val joystickTeleportText = "Joystick TP"
+            val copyText = "Copy"
+            val deleteText = "Delete"
+            val invasionText = "Name: ${invasion.name}\n" +
+                    "Location: $teleportText | $joystickTeleportText | $copyText | $deleteText\n" +
+                    "Character: ${invasion.characterName}\n" +
+                    "Type: ${invasion.typeDescription}\n" +
+                    "Source: $source\n" +
+                    "Ending at: $endTime\n\n"
+            val start = stringBuilder.length
+            stringBuilder.append(invasionText)
+            val spanStartTeleport = start + "Name: ${invasion.name}\nLocation: ".length
+            val spanEndTeleport = spanStartTeleport + teleportText.length
+            val spanStartJoystickTeleport = spanEndTeleport + " | ".length
+            val spanEndJoystickTeleport = spanStartJoystickTeleport + joystickTeleportText.length
+            val spanStartCopy = spanEndJoystickTeleport + " | ".length
+            val spanEndCopy = spanStartCopy + copyText.length
+            val spanStartDelete = spanEndCopy + " | ".length
+            val spanEndDelete = spanStartDelete + deleteText.length
+
+            // iPogo Teleport span
+            stringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ipogoLink))
+                    widget.context.startActivity(intent)
+
+                    filteredInvasions.remove(invasion)
+                    visitedInvasions.add(invasion)
+                    saveVisitedInvasions()
+                    updateResultTextView()
+                    loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
+
+                }
+            }, spanStartTeleport, spanEndTeleport, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            // GPS Joystick Teleport span
+
+            stringBuilder.setSpan(object : ClickableSpan() {
+                @SuppressLint("StringFormatInvalid")
+                override fun onClick(widget: View) {
+                    val intent = Intent().apply {
+                        action = "theappninjas.gpsjoystick.TELEPORT"
+                        putExtra("lat", invasion.lat.toFloat())
+                        putExtra("lng", invasion.lng.toFloat())
+                    }
+
+                    intent.component = ComponentName("com.theappninjas.fakegpsjoystick",
+                        "com.theappninjas.fakegpsjoystick.service.OverlayService")
+
+                    try {
+                        val componentName = widget.context.startService(intent)
+                        if (componentName != null) {
+                            intent.component = ComponentName("com.thekkgqtaoxz.ymaaammipjyfatw",
+                                "com.thekkgqtaoxz.ymaaammipjyfatw.service.OverlayService")
+                            filteredInvasions.remove(invasion)
+                            visitedInvasions.add(invasion)
+                            saveVisitedInvasions()
+                            updateResultTextView()
+                            loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
+                        } else {
+                            throw IllegalStateException("Service not found")
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(widget.context, "Error: Joystick not found", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }, spanStartJoystickTeleport, spanEndJoystickTeleport, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+
+
+
+            // Copy coordinates span
+            stringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    val clipboard = widget.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Coordinates", "${invasion.lat},${invasion.lng}")
+                    clipboard.setPrimaryClip(clip)
+
+                    Toast.makeText(widget.context, "${invasion.lat}, ${invasion.lng} copied ", Toast.LENGTH_SHORT).show()
+                }
+            }, spanStartCopy, spanEndCopy, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            // Delete invasion span
+            stringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    filteredInvasions.remove(invasion)
+                    visitedInvasions.add(invasion)
+                    saveVisitedInvasions()
+                    updateResultTextView()
+                    loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
+
+                    Toast.makeText(widget.context, "Deleted invasion: ${invasion.name}", Toast.LENGTH_SHORT).show()
+
+                }
+            }, spanStartDelete, spanEndDelete, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+
+
+
+    private fun printFavourites() {
+
+
+    }
+    data class FavouriteLocation(val name: String, val coordinates: String)
+
+
+    private fun saveLocations() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val gson = Gson()
+
+        val json = gson.toJson(storedFavourites)
+        editor.putString("favourites", json)
+        val isSuccess = editor.commit() // Use commit() to ensure saving is synchronous
+        if (isSuccess) {
+            Log.d("Save Location", "Locations saved successfully")
+        } else {
+            Log.e("Save Location", "Failed to save locations")
+        }
+    }
+
+
+
+    private fun loadLocations() {
+        val sharedPreferences = getSharedPreferences("MyAppPreferences", Context.MODE_PRIVATE) // Consistent name
+        val gson = Gson()
+        val json = sharedPreferences.getString("favourites", null)
+        if (json != null) {
+            val type = object : TypeToken<MutableList<FavouriteLocation>>() {}.type
+            storedFavourites = gson.fromJson(json, type)
+            Log.d("Load Location", "Locations loaded successfully: $storedFavourites")
+        } else {
+            Log.d("Load Location", "No saved locations found")
+            storedFavourites = mutableListOf() // Initialize as empty list if no data
+        }
+    }
+
+
+
+
+    private fun updateUIWithFavourites() {
+        val currentText = SpannableStringBuilder()
+        val iterator = storedFavourites.iterator()
+
+        while (iterator.hasNext()) {
+            val location = iterator.next()
+            val link = "https://ipogo.app/?coords=${location.coordinates}"
+            val locationText = "Location: ${location.name}\nCoords: ${location.coordinates} | Teleport | Delete | Edit\n\n"
+            val spannableString = SpannableString(locationText)
+
+            // Create clickable spans
+            val teleportSpan = object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                    startActivity(intent)
+                }
+            }
+
+            val deleteSpan = object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Remove location from list and update UI
+                    storedFavourites.remove(location)
+                    saveLocations() // Save updated list
+                    updateUIWithFavourites() // Refresh UI
+                }
+            }
+
+            val copySpan = object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Copy coordinates to clipboard
+                    val clipboard = widget.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Coordinates:", location.coordinates)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(widget.context, "Coordinates copied to clipboard", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            val editSpan = object : ClickableSpan() {
+                override fun onClick(widget: View) {
+
+                    showAddFavoriteDialog()
+                    if(placeAccepted) {
+                        storedFavourites.remove(location)
+                    }
+                }
+            }
+
+            // Set spans
+            val startTeleport = locationText.indexOf("Teleport")
+            val endTeleport = startTeleport + "Teleport".length
+            spannableString.setSpan(teleportSpan, startTeleport, endTeleport, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            val startDelete = locationText.indexOf("Delete")
+            val endDelete = startDelete + "Delete".length
+
+            spannableString.setSpan(deleteSpan, startDelete, endDelete, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            val startEdit = locationText.indexOf("Edit")
+            val endEdit = startEdit + "Edit".length
+            spannableString.setSpan(editSpan, startEdit, endEdit, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            val startCoordinates = locationText.indexOf(location.coordinates)
+            val endCoordinates = startCoordinates + location.coordinates.length
+            spannableString.setSpan(copySpan, startCoordinates, endCoordinates, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            currentText.append(spannableString)
+        }
+
+        // Log the contents before setting it to the TextView
+        Log.d("TAG", "Setting text: $currentText")
+
+        runOnUiThread {
+            favoritesText.text = currentText
+            favoritesText.movementMethod = LinkMovementMethod.getInstance()
+        }
+
+        Log.d("TAG", "Updated UI with favourites")
+    }
+
+
+
+
+
+
+    private fun addFavourites(locationName: String, coordinates: String) {
+        val coordinatesRegex = """^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$""".toRegex()
+        if (!coordinatesRegex.matches(coordinates)) {
+            Log.d("TAG", "Incorrect coordinate format")
+            Toast.makeText(this, "Incorrect coordinate format", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        loadLocations()
+
+        if (storedFavourites.any { it.name == locationName }) {
+            Toast.makeText(this, "Duplicate or invalid location name found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (storedFavourites.any { it.coordinates == coordinates }) {
+            Toast.makeText(this, "Duplicate coordinates found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        placeAccepted =true
+        Toast.makeText(this, "success", Toast.LENGTH_SHORT).show()
+
+        val newFavourite = FavouriteLocation(locationName, coordinates)
+        storedFavourites.add(newFavourite)
+        saveLocations()
+        updateUIWithFavourites()
+        placeAccepted = false
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private fun printJournal() {
+        if (visitedInvasions.isNotEmpty()) {
+            Log.d("TAG","Journal:")
+            for (invasion in visitedInvasions) {
+                Log.d("TAG", "Pokestop Name: ${invasion.name} " +
+                        "Type: ${invasion.characterName} " +
+                        "Coordinates: ${invasion.lat}, ${invasion.lng}")
+            }
+        } else {
+            Log.d("TAG", "No stored invasions!!")
+        }
+    }
+
+
 
     private fun handleFailure(exception: Exception) {
         resultTextView.text = getString(R.string.api_call_failed, exception.message)

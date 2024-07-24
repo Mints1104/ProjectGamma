@@ -17,12 +17,10 @@
 
     </style>
 
-    <!-- Base application theme for Dark mode -->
     <style name="Theme.ProjectGamma.Dark" parent="Theme.MaterialComponents.DayNight">
-        <item name="android:windowBackground">@color/windowBackgroundDark</item> <!-- Dark mode window background -->
+        <item name="android:windowBackground">@color/windowBackgroundDark</item>
         ?android:attr/textColorPrimary
-        <!-- Customize your dark theme here -->
-        <!-- Set window background for dark mode -->
+
     </style>
 
 </resources>
