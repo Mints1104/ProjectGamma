@@ -3,8 +3,8 @@
     <string name="hyperlink"> <a href="https://ipogo.app/?coords=">Teleport</a></string>
     <string name="drop_down_menu">Dropdown Menu</string>
     <string name="select">Select </string>
-    <string name="project_gamma_header">Project Gamma (v0.29 Dev Build) by Mints </string>
-    <string name="project_gamma_info">Join the <a href="https://discord.gg/GnnaQBxB">discord</a> to stay up-to-date.</string>
+    <string name="project_gamma_header">Project Gamma (v0.33 Dev Build) by Mints </string>
+    <string name="project_gamma_info">Join the <a href="https://discord.gg/VP4mRsvXec">discord</a> or check the <a href="https://projectgamma.grumpyclockgames.com/">website</a>  to stay up-to-date.</string>
     <string name="saved_grunts_info">Total stored invasions: %d/%d</string>
     <string name="number_of_grunts_beat">Grunts battled this session: %d</string>
     <string name="favorites_text">Open Favorites</string>
@@ -12,16 +12,25 @@
     <string name="load_refresh_data_London">Load London Data</string>
     <string name="select_data_options">Select Data Sources</string>
     <string name="select_options">Select Invasions</string>
-    <string name="selected_items_will_appear_here">Selected items will appear here</string>
+    <string name="selected_items_will_appear_here"></string>
     <string name="loading_data_may_take_a_few_seconds">Loading data may take a few seconds.</string>
-    <string name="selected_items">Selected items: %1$s</string>
-    <string name="no_items_selected">Selected items: None</string>
+    <string name="selected_items">Selected: %1$s</string>
+    <string name="no_items_selected">Selected: None</string>
     <string name="api_call_failed">API call failed: %1$s</string>
-    <string name="all_items_selected">Selected items: All</string>
+    <string name="all_items_selected">Selected: All</string>
     <string name="select_deselect_all_invasions">Select/Deselect all invasions</string>
     <string name="home_coordinates">Home Coordinates</string>
     <string name="favorites">Favorites</string>
     <string name="favorites_will_appear_here"></string>
+    <string name="import_export">Import/Export Favorites</string>
+    <string name="delete_favorite_location">Delete Favorite Location</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="confirm">Confirm</string>
+    <string name="edit_favorite_location">Edit Favorite Location</string>
+    <string name="grunts_per_min">You are battling 0.0 grunts per minute (stay below 1)</string>
+
+
 
 </resources>
 
