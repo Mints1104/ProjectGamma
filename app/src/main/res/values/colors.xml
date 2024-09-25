@@ -11,6 +11,7 @@
 
     <color name="colorError">#FF000000</color>
     <color name="colorOnError">#FFFFFFFF</color>
+    <color name="colorAccent">#FF4081</color>
 
     <color name="windowBackground">#FFFFFFFF</color> <!-- Light mode window background -->
 

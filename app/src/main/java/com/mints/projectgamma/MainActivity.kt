@@ -124,9 +124,8 @@ class MainActivity : ComponentActivity() {
    private lateinit  var settingsTextView: EditText
    private var initialiseImport = false
 private var locationDeleted = false
-    private lateinit var gruntsPerMinuteTextView: TextView
-    private var isTracking = false
-    private lateinit var gpmJob: Job
+    private val beatenGruntsTimestamps = mutableListOf<Long>()
+
 
 
 
@@ -148,8 +147,8 @@ private var locationDeleted = false
         visitedInvasions = mutableListOf()
         selectedItems = mutableListOf()
         selectedDataSources = mutableListOf()
-        gruntsPerMinuteTextView = findViewById(R.id.session_grunts)
-        startTrackingGPM()
+        sessionGrunts = findViewById(R.id.grunts_past_day)
+
 
 
 
@@ -167,7 +166,6 @@ private var locationDeleted = false
 
         loadedGrunts = findViewById(R.id.saved_grunts)
 
-        sessionGrunts = findViewById(R.id.session_grunts)
    //     sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
 
         loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
@@ -868,7 +866,7 @@ populateFavImport()
     @RequiresApi(Build.VERSION_CODES.O)
     fun formatInvasionEndTime(invasionEnd: Long): String {
         try {
-            val formatter = DateTimeFormatter.ofPattern("HH:mm:ss zzz")
+            val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
                 .withZone(ZoneId.systemDefault())
 
             val formattedTime = formatter.format(Instant.ofEpochSecond(invasionEnd))
@@ -957,10 +955,7 @@ populateFavImport()
         resultTextView.movementMethod = LinkMovementMethod.getInstance()
     }
 
-    private fun calculateGruntsPerMinute(startTime: Long, gruntsBeat: Int): Double {
-        val elapsedTimeMinutes = (System.currentTimeMillis() - startTime) / 60000.0
-        return if (elapsedTimeMinutes > 0) gruntsBeat / elapsedTimeMinutes else 0.0
-    }
+
 
 
 
@@ -968,6 +963,8 @@ populateFavImport()
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun postData(invasion: Invasion, stringBuilder: SpannableStringBuilder) {
+        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
+
         if (!visitedInvasions.contains(invasion)) {
             val source: String = when {
                 invasion.lat.toString().startsWith("40") -> "New York"
@@ -1007,25 +1004,17 @@ populateFavImport()
                     saveVisitedInvasions()
                     handleInteraction(invasion)
 
-                    if(invasion.characterName== "Kecleon" || invasion.characterName == "Showcase") {
-                       Log.d("TAG",invasion.characterName)
-
+                    if(invasion.typeDescription != "Grunt" || invasion.typeDescription != "Leader"
+                        || invasion.typeDescription != "Giovanni") {
+                        Log.d("TAG","Not counted towards grunts battled")
                     } else {
-                        sessionGruntsBeat++
-
-                        Log.d("TAG", "Success $sessionGruntsBeat")
-                        Log.d("TAG", invasion.characterName)
-
-                        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
-
+                        recordGruntBeaten()
 
                     }
 
-                    loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
-                    updateResultTextView()
 
-
-
+                    // Update the UI
+                    refreshUI()
                 }
             }, spanStartTeleport, spanEndTeleport, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
@@ -1046,27 +1035,45 @@ populateFavImport()
                     saveVisitedInvasions()
                     handleInteraction(invasion)
 
-                    if(invasion.characterName== "Kecleon" || invasion.characterName == "Showcase") {
-                        Log.d("TAG",invasion.characterName)
-
+                    // Record the grunt beaten
+                    if(invasion.typeDescription == "Showcase" || invasion.typeDescription == "Kecleon") {
+                        Log.d("TAG","Hmm {${invasion.typeDescription}}")
                     } else {
-                        sessionGruntsBeat++
-
-                        Log.d("TAG","Success $sessionGruntsBeat")
-                        Log.d("TAG", invasion.characterName)
-
-                        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
-
+                        recordGruntBeaten()
 
                     }
-
-                    loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
-
-                    updateResultTextView()
-
+                    // Update the UI
+                    refreshUI()
                 }
             }, spanStartDelete, spanEndDelete, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
+    }
+
+
+    private fun recordGruntBeaten() {
+        beatenGruntsTimestamps.add(System.currentTimeMillis())
+    }
+
+
+    private fun countGruntsBeatenInLast24Hours(): Int {
+        val twentyFourHoursAgo = System.currentTimeMillis() - 24 * 60 * 60 * 1000
+        return beatenGruntsTimestamps.count { it >= twentyFourHoursAgo }
+    }
+
+
+    private fun updateSessionGruntsBeat() {
+        val gruntsBeaten = countGruntsBeatenInLast24Hours()
+        sessionGruntsBeat = gruntsBeaten
+
+        // Update the sessionGrunts TextView with the formatted string
+        sessionGrunts.text = getString(R.string.number_of_grunts_beat, sessionGruntsBeat)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun refreshUI() {
+        updateSessionGruntsBeat()
+        loadedGrunts.text = getString(R.string.saved_grunts_info, visitedInvasions.size, MAX_VISITED_INVASIONS)
+        updateResultTextView()
     }
 
 
@@ -1074,12 +1081,6 @@ populateFavImport()
 
 
 
-
-
-
-
-    private var interactionCount = 0
-    private var startTime: Long = 0L
 
 
     /*
@@ -1180,37 +1181,12 @@ populateFavImport()
 
 
 
-    private fun startTrackingGPM() {
-        if (!isTracking) {
-            isTracking = true
-            startTime = System.currentTimeMillis()
 
-            // Start a coroutine to update GPM every second
-            gpmJob = CoroutineScope(Dispatchers.Main).launch {
-                while (isTracking) {
-                    updateGPMDisplay()
-                    delay(1000L)  // Update every second
-                }
-            }
-        }
-    }
-
-    private fun stopTrackingGPM() {
-        isTracking = false
-        if (::gpmJob.isInitialized) {
-            gpmJob.cancel()
-        }
-    }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleInteraction(invasion: Invasion) {
-        interactionCount++
 
-        // Start tracking after the first interaction
-        if (interactionCount == 1) {
-            startTrackingGPM()
-        }
 
         filteredInvasions.remove(invasion)
         visitedInvasions.add(invasion)
@@ -1220,34 +1196,9 @@ populateFavImport()
     }
 
 
-    private fun updateGPMDisplay() {
-        val currentTime = System.currentTimeMillis()
-        val timeElapsedSeconds = (currentTime - startTime) / 1000.0 // seconds
-        val timeElapsedMinutes = timeElapsedSeconds / 60.0 // minutes
-
-        val gpmThreshold = 0.5 // Minimum time in minutes before calculating GPM (30 seconds)
-        val windowSizeMinutes = 2.0 // Sliding window size in minutes
-        val effectiveTimeElapsed = minOf(timeElapsedMinutes, windowSizeMinutes)
-
-        // Adjust GPM calculation to consider the entire time elapsed, not just the window
-        val gpm = if (timeElapsedMinutes >= gpmThreshold && interactionCount > 0) {
-            interactionCount / timeElapsedMinutes // grunts per minute across the entire elapsed time
-        } else {
-            0.0 // Show 0.0 if the threshold isn't met or no interactions
-        }
-
-        val gpmMessage = "You are battling %.2f grunts per minute (stay below 1)".format(gpm)
-
-            gruntsPerMinuteTextView.text = gpmMessage
-
-    }
 
 
 
-    override fun onDestroy() {
-        super.onDestroy()
-        stopTrackingGPM() // Stop the coroutine when the activity is destroyed
-    }
 
 
                         data class FavouriteLocation(var name: String, var coordinates: String)
@@ -1317,12 +1268,130 @@ populateFavImport()
     private fun updateUIWithFavourites() {
         val currentText = SpannableStringBuilder()
         val iterator = storedFavourites.iterator()
+        var spannableString: SpannableString
+        var locationText: String
 
         while (iterator.hasNext()) {
+
             val location = iterator.next()
+            val itemIndex = storedFavourites.indexOf(location)
             val link = "https://ipogo.app/?coords=${location.coordinates}"
-            val locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n\n"
-            val spannableString = SpannableString(locationText)
+
+            if(itemIndex !=0 && itemIndex != storedFavourites.lastIndex) {
+                 locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n" +
+                        "Reorder: UP! | DOWN!\n\n"
+
+                spannableString = SpannableString(locationText)
+
+
+                val reorderUpwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex-1]
+
+                        val aboveTemp = storedFavourites[itemIndex-1]
+                        val belowTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex-1] = belowTemp
+                        storedFavourites[itemIndex] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+
+                    }
+                }
+                val startReorderUp = locationText.indexOf("UP!")
+                val endReorderUp = startReorderUp + "UP!".length
+
+
+                spannableString.setSpan(reorderUpwardsSpan, startReorderUp, endReorderUp, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+
+                val reorderDownwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex+1]
+
+                        val belowTemp = storedFavourites[itemIndex+1]
+                        val aboveTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex] = belowTemp
+                        storedFavourites[itemIndex+1] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+                    }
+                }
+                val startReorderDown = locationText.indexOf("DOWN!")
+                val endReorderDown = startReorderDown + "DOWN!".length
+
+
+                spannableString.setSpan(reorderDownwardsSpan, startReorderDown, endReorderDown, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            } else if(itemIndex == 0) {
+                 locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n" +
+                        "Reorder: DOWN!\n\n"
+                spannableString = SpannableString(locationText)
+
+
+                val reorderDownwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex+1]
+
+                        val belowTemp = storedFavourites[itemIndex+1]
+                        val aboveTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex] = belowTemp
+                        storedFavourites[itemIndex+1] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+
+                    }
+                }
+                val startReorderDown = locationText.indexOf("DOWN!")
+                val endReorderDown = startReorderDown + "DOWN!".length
+
+
+                spannableString.setSpan(reorderDownwardsSpan, startReorderDown, endReorderDown, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            } else {
+                locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n" +
+                        "Reorder: UP!\n\n"
+                spannableString = SpannableString(locationText)
+
+                val reorderUpwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex-1]
+
+                        val aboveTemp = storedFavourites[itemIndex-1]
+                        val belowTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex-1] = belowTemp
+                        storedFavourites[itemIndex] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+
+                    }
+                }
+                val startReorderUp = locationText.indexOf("UP!")
+                val endReorderUp = startReorderUp + "UP!".length
+
+
+                spannableString.setSpan(reorderUpwardsSpan, startReorderUp, endReorderUp, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            }
+
 
             // Create clickable spans
             val teleportSpan = object : ClickableSpan() {
@@ -1331,6 +1400,7 @@ populateFavImport()
                     startActivity(intent)
                 }
             }
+
 
             val deleteSpan = object : ClickableSpan() {
                 override fun onClick(widget: View) {
@@ -1370,6 +1440,11 @@ populateFavImport()
             val startEdit = locationText.indexOf("Edit")
             val endEdit = startEdit + "Edit".length
             spannableString.setSpan(editSpan, startEdit, endEdit, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+
+
+
+
 
             val startCoordinates = locationText.indexOf(location.coordinates)
             val endCoordinates = startCoordinates + location.coordinates.length

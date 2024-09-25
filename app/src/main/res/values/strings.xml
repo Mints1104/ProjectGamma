@@ -6,7 +6,7 @@
     <string name="project_gamma_header">Project Gamma (v0.33 Dev Build) by Mints </string>
     <string name="project_gamma_info">Join the <a href="https://discord.gg/VP4mRsvXec">discord</a> or check the <a href="https://projectgamma.grumpyclockgames.com/">website</a>  to stay up-to-date.</string>
     <string name="saved_grunts_info">Total stored invasions: %d/%d</string>
-    <string name="number_of_grunts_beat">Grunts battled this session: %d</string>
+    <string name="number_of_grunts_beat">Grunts battled in past 24 hours (stay below 600): %d</string>
     <string name="favorites_text">Open Favorites</string>
     <string name="load_refresh_data">Load/Refresh Data</string>
     <string name="load_refresh_data_London">Load London Data</string>
