@@ -1277,7 +1277,7 @@ populateFavImport()
             val itemIndex = storedFavourites.indexOf(location)
             val link = "https://ipogo.app/?coords=${location.coordinates}"
 
-            if(itemIndex !=0) {
+            if(itemIndex !=0 && itemIndex != storedFavourites.lastIndex) {
                  locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n" +
                         "Reorder: UP! | DOWN!\n\n"
 
@@ -1298,8 +1298,7 @@ populateFavImport()
 
                         updateUIWithFavourites()
 
-                        Toast.makeText(widget.context, "Name of location above:"+storedFavourites[itemIndex-1].name
-                            , Toast.LENGTH_SHORT).show()
+
 
                     }
                 }
@@ -1308,10 +1307,88 @@ populateFavImport()
 
 
                 spannableString.setSpan(reorderUpwardsSpan, startReorderUp, endReorderUp, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            } else {
+
+
+                val reorderDownwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex+1]
+
+                        val belowTemp = storedFavourites[itemIndex+1]
+                        val aboveTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex] = belowTemp
+                        storedFavourites[itemIndex+1] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+                    }
+                }
+                val startReorderDown = locationText.indexOf("DOWN!")
+                val endReorderDown = startReorderDown + "DOWN!".length
+
+
+                spannableString.setSpan(reorderDownwardsSpan, startReorderDown, endReorderDown, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            } else if(itemIndex == 0) {
                  locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n" +
                         "Reorder: DOWN!\n\n"
                 spannableString = SpannableString(locationText)
+
+
+                val reorderDownwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex+1]
+
+                        val belowTemp = storedFavourites[itemIndex+1]
+                        val aboveTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex] = belowTemp
+                        storedFavourites[itemIndex+1] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+
+                    }
+                }
+                val startReorderDown = locationText.indexOf("DOWN!")
+                val endReorderDown = startReorderDown + "DOWN!".length
+
+
+                spannableString.setSpan(reorderDownwardsSpan, startReorderDown, endReorderDown, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            } else {
+                locationText = "Location: ${location.name}\nCoords: ${location.coordinates} \nActions: Teleport | Delete | Edit \n" +
+                        "Reorder: UP!\n\n"
+                spannableString = SpannableString(locationText)
+
+                val reorderUpwardsSpan = object : ClickableSpan() {
+                    override fun onClick(widget: View) {
+
+
+                        storedFavourites[itemIndex-1]
+
+                        val aboveTemp = storedFavourites[itemIndex-1]
+                        val belowTemp = storedFavourites[itemIndex]
+
+                        storedFavourites[itemIndex-1] = belowTemp
+                        storedFavourites[itemIndex] = aboveTemp
+
+                        updateUIWithFavourites()
+
+
+
+                    }
+                }
+                val startReorderUp = locationText.indexOf("UP!")
+                val endReorderUp = startReorderUp + "UP!".length
+
+
+                spannableString.setSpan(reorderUpwardsSpan, startReorderUp, endReorderUp, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
 
             }
 
