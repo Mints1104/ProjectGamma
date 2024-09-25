@@ -37,6 +37,15 @@
             android:layout_marginTop="-30dp"
             android:text="@string/saved_grunts_info" />
 
+        <TextView
+            android:id="@+id/grunts_past_day"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:layout_marginTop="-30dp"
+            android:text="@string/number_of_grunts_beat" />
+
+
 
 
         <Button
@@ -119,13 +128,7 @@
             android:layout_marginStart="10dp"
             android:text="@string/selected_items_will_appear_here" />
 
-        <TextView
-            android:id="@+id/session_grunts"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:layout_marginTop="20dp"
-            android:text="@string/grunts_per_min" />
+
 
         <TextView
             android:id="@+id/text_view_result"
